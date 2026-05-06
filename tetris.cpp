@@ -36,8 +36,16 @@ char Tetris::getCell(int piece, int rotation, int r, int c) const {
 
 // Kiểm tra xem khối `piece` ở vị trí (px, py) và xoay `rotation` có va chạm tường hoặc
 // khối đã khóa trên bàn chơi hay không.
+// TODO: duyệt 4x4, nếu ô không trống thì kiểm tra va chạm với board hoặc tường
 bool Tetris::collides(int piece, int rotation, int px, int py) const {
-	// TODO: duyệt 4x4, nếu ô không trống thì kiểm tra va chạm với board hoặc tường
+	for (int i = 0; i < S; ++i)
+		for (int j = 0; j < S; ++j)
+			if (getCell(piece, rotation, i, j) != ' ') {
+				int xx = px + j;
+				int yy = py + i;
+				if (xx < 0 || xx >= W || yy < 0 || yy >= H || board[yy][xx] != ' ')
+					return true;
+			}
 	return false;
 }
 
@@ -59,8 +67,29 @@ void Tetris::lock() {
 
 // Quét từ dưới lên, xóa các hàng đầy, tính điểm và tăng level.
 void Tetris::clearLines() {
-	// TODO: duyệt các hàng, nếu đầy thì xóa và dồn xuống
-	// TODO: cập nhật score, lines, level
+	int cleared = 0;
+	for (int row = H - 2; row > 0; --row) {
+		bool full = true;
+		for (int col = 1; col < W - 1; ++col)
+			if (board[row][col] == ' ') { full = false; break; }
+
+		if (full) {
+			++cleared;
+			for (int r = row; r > 1; --r)
+				for (int c = 1; c < W - 1; ++c)
+					board[r][c] = board[r - 1][c];
+			for (int c = 1; c < W - 1; ++c)
+				board[1][c] = ' ';
+			++row; // re-check this row
+		}
+	}
+	if (cleared) {
+		lines += cleared;
+		// Simple scoring: 40, 100, 300, 1200 per level
+		int pts[] = { 0, 40, 100, 300, 1200 };
+		score += pts[cleared] * level;
+		level = 1 + lines / 10;
+	}
 }
 
 // Vẽ toàn bộ màn hình: bàn chơi, khối đang rơi, sidebar, điểm số.
