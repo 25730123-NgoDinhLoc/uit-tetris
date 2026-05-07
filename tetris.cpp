@@ -36,7 +36,7 @@ char Tetris::getCell(int piece, int rotation, int r, int c) const {
 
 // Kiểm tra xem khối `piece` ở vị trí (px, py) và xoay `rotation` có va chạm tường hoặc
 // khối đã khóa trên bàn chơi hay không.
-	// TODO: duyệt 4x4, nếu ô không trống thì kiểm tra va chạm với board hoặc tường
+// TODO: duyệt 4x4, nếu ô không trống thì kiểm tra va chạm với board hoặc tường
 bool Tetris::collides(int piece, int rotation, int px, int py) const {
 	for (int i = 0; i < S; ++i)
 		for (int j = 0; j < S; ++j)
@@ -46,58 +46,108 @@ bool Tetris::collides(int piece, int rotation, int px, int py) const {
 				if (xx < 0 || xx >= W || yy < 0 || yy >= H || board[yy][xx] != ' ')
 					return true;
 			}
+	return false;
+}
 
-	// Kiểm tra xem khối hiện tại có thể di chuyển (dx, dy) không.
-	bool Tetris::canMove(int dx, int dy) const {
-		// TODO: gọi collides với vị trí x+dx, y+dy
-		return false;
-	}
+// Kiểm tra xem khối hiện tại có thể di chuyển (dx, dy) không.
+bool Tetris::canMove(int dx, int dy) const {
+	// TODO: gọi collides với vị trí x+dx, y+dy
+	return false;
+}
 
-	// Xoay khối hiện tại 90° theo chiều kim đồng hồ nếu không va chạm.
-	void Tetris::rotate() {
-		// TODO: thử rot mới = (rot + 1) % 4, nếu không collides thì cập nhật rot
-	}
+// Xoay khối hiện tại 90° theo chiều kim đồng hồ nếu không va chạm.
+void Tetris::rotate() {
+	// TODO: thử rot mới = (rot + 1) % 4, nếu không collides thì cập nhật rot
+}
 
-	// Khóa khối hiện tại vào bàn chơi (merge vào board).
-	void Tetris::lock() {
-		// TODO: duyệt 4x4, nếu ô khối không trống thì ghi ký tự vào board[y+i][x+j]
-	}
+// Khóa khối hiện tại vào bàn chơi (merge vào board).
+void Tetris::lock() {
+	// TODO: duyệt 4x4, nếu ô khối không trống thì ghi ký tự vào board[y+i][x+j]
+}
 
-	// Quét từ dưới lên, xóa các hàng đầy, tính điểm và tăng level.
-	void Tetris::clearLines() {
-		int cleared = 0;
-		for (int row = H - 2; row > 0; --row) {
-			bool full = true;
-			for (int col = 1; col < W - 1; ++col)
-				if (board[row][col] == ' ') { full = false; break; }
+// Quét từ dưới lên, xóa các hàng đầy, tính điểm và tăng level.
+void Tetris::clearLines() {
+	int cleared = 0;
+	for (int row = H - 2; row > 0; --row) {
+		bool full = true;
+		for (int col = 1; col < W - 1; ++col)
+			if (board[row][col] == ' ') { full = false; break; }
 
-			if (full) {
-				++cleared;
-				for (int r = row; r > 1; --r)
-					for (int c = 1; c < W - 1; ++c)
-						board[r][c] = board[r - 1][c];
+		if (full) {
+			++cleared;
+			for (int r = row; r > 1; --r)
 				for (int c = 1; c < W - 1; ++c)
-					board[1][c] = ' ';
-				++row; // re-check this row
+					board[r][c] = board[r - 1][c];
+			for (int c = 1; c < W - 1; ++c)
+				board[1][c] = ' ';
+			++row; // re-check this row
+		}
+	}
+	if (cleared) {
+		lines += cleared;
+		// Simple scoring: 40, 100, 300, 1200 per level
+		int pts[] = { 0, 40, 100, 300, 1200 };
+		score += pts[cleared] * level;
+		level = 1 + lines / 10;
+	}
+}
+
+// Vẽ toàn bộ màn hình: bàn chơi, khối đang rơi, sidebar, điểm số.
+void Tetris::draw() const {
+	// TODO: dùng ncurses để vẽ board, khối active, next piece, score, controls
+}
+
+// Vòng lặp chính: nhận phím, xử lý gravity tự động, gọi draw().
+
+// TODO: khởi tạo ncurses (initscr, cbreak, noecho, nodelay, keypad, curs_set)
+void Tetris::run() {
+	initscr();
+	cbreak();
+	noecho();
+	nodelay(stdscr, TRUE);
+	keypad(stdscr, TRUE);
+	curs_set(0);
+
+	auto lastDrop = chrono::steady_clock::now();
+	int dropMs = 500; // start speed
+
+	// TODO: vòng lặp while (!over): đọc phím, xử lý di chuyển/xoay/drop, gravity tự động
+	while (!over) {
+		int ch = getch();
+		if (ch == 'q' || ch == 'Q') break;
+
+		if (ch == 'a' || ch == KEY_LEFT) { if (canMove(-1, 0)) --x; }
+		if (ch == 'd' || ch == KEY_RIGHT) { if (canMove(1, 0)) ++x; }
+		if (ch == 'w' || ch == KEY_UP)    rotate();
+		if (ch == 's' || ch == KEY_DOWN) { if (canMove(0, 1)) ++y; }
+		if (ch == ' ') { // hard drop
+			while (canMove(0, 1)) ++y;
+			lock();
+			clearLines();
+			spawn();
+		}
+
+		auto now = chrono::steady_clock::now();
+		if (chrono::duration_cast<chrono::milliseconds>(now - lastDrop).count() > dropMs) {
+			if (canMove(0, 1))
+				++y;
+			else {
+				lock();
+				clearLines();
+				spawn();
 			}
+			lastDrop = now;
+			dropMs = max(50, 500 - (level - 1) * 50);
 		}
-		if (cleared) {
-			lines += cleared;
-			// Simple scoring: 40, 100, 300, 1200 per level
-			int pts[] = { 0, 40, 100, 300, 1200 };
-			score += pts[cleared] * level;
-			level = 1 + lines / 10;
-		}
-	}
 
-	// Vẽ toàn bộ màn hình: bàn chơi, khối đang rơi, sidebar, điểm số.
-	void Tetris::draw() const {
-		// TODO: dùng ncurses để vẽ board, khối active, next piece, score, controls
+		draw();
+		this_thread::sleep_for(chrono::milliseconds(16)); // ~60 FPS
 	}
-
-	// Vòng lặp chính: nhận phím, xử lý gravity tự động, gọi draw().
-	void Tetris::run() {
-		// TODO: khởi tạo ncurses (initscr, cbreak, noecho, nodelay, keypad, curs_set)
-		// TODO: vòng lặp while (!over): đọc phím, xử lý di chuyển/xoay/drop, gravity tự động
-		// TODO: dọn dẹp ncurses khi thoát
+	// TODO: dọn dẹp ncurses khi thoát
+	 // Wait for a key on game over before exit
+	if (over) {
+		nodelay(stdscr, FALSE);
+		getch();
 	}
+	endwin();
+}
