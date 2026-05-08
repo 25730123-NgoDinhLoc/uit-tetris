@@ -49,19 +49,23 @@ bool Tetris::collides(int piece, int rotation, int px, int py) const {
 
 	// Kiểm tra xem khối hiện tại có thể di chuyển (dx, dy) không.
 	bool Tetris::canMove(int dx, int dy) const {
-		// TODO: gọi collides với vị trí x+dx, y+dy
-		return false;
-	}
+    return !collides(b, rot, x + dx, y + dy);
+}
 
 	// Xoay khối hiện tại 90° theo chiều kim đồng hồ nếu không va chạm.
 	void Tetris::rotate() {
-		// TODO: thử rot mới = (rot + 1) % 4, nếu không collides thì cập nhật rot
-	}
+    int nextRot = (rot + 1) % 4;
+    if (!collides(b, nextRot, x, y))
+        rot = nextRot;
+}
 
 	// Khóa khối hiện tại vào bàn chơi (merge vào board).
 	void Tetris::lock() {
-		// TODO: duyệt 4x4, nếu ô khối không trống thì ghi ký tự vào board[y+i][x+j]
-	}
+    for (int i = 0; i < S; ++i)
+        for (int j = 0; j < S; ++j)
+            if (getCell(b, rot, i, j) != ' ')
+                board[y + i][x + j] = getCell(b, rot, i, j);
+}
 
 	// Quét từ dưới lên, xóa các hàng đầy, tính điểm và tăng level.
 	void Tetris::clearLines() {
