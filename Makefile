@@ -1,7 +1,7 @@
 # --- Compiler settings ---
 CXX      = g++                           # C++ compiler
 CXXFLAGS = -std=c++17 -Wall -Wextra -O2  # language standard, all warnings, optimize
-LDLIBS   = -lncurses                     # libraries to link (ncurses for terminal UI)
+LDLIBS   = -lsfml-graphics -lsfml-window -lsfml-system  # SFML libraries for graphics and windowing
 
 # --- File lists ---
 TARGET   = tetris                        # final executable name
@@ -34,3 +34,4 @@ run: $(TARGET)
 # Remove all generated files (objects + executable)
 clean:
 	rm -f $(OBJS) $(TARGET)
+
