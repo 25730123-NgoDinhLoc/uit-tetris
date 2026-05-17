@@ -333,6 +333,7 @@ void Tetris::run() {
 	nodelay(stdscr, TRUE);
 	keypad(stdscr, TRUE);
 	curs_set(0);
+	initializeColors();
 
 	auto lastDrop = chrono::steady_clock::now();
 	int dropMs = 500; // start speed
@@ -365,7 +366,7 @@ void Tetris::run() {
 			dropMs = max(50, 500 - (level - 1) * 50);
 		}
 
-		draw();
+		renderFrame();
 		this_thread::sleep_for(chrono::milliseconds(16)); // ~60 FPS
 	}
 
