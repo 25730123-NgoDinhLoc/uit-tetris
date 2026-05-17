@@ -26,7 +26,8 @@ private:
 	int score;
 	int lines;
 	int level;
-	bool over;
+	bool gameOver;
+	bool isPaused;
 
 	void initBlocks();
 	void initBoard();

@@ -7,7 +7,7 @@
 
 using namespace std;
 
-Tetris::Tetris() : x(5), y(1), b(0), rot(0), next(0), score(0), lines(0), level(1), over(false) {
+Tetris::Tetris() : pieceX(5), pieceY(1), currentPiece(0), currentRotation(0), nextPiece(0), score(0), lines(0), level(1), gameOver(false), isPaused(false) {
 	srand(static_cast<unsigned int>(time(0)));
 	initBlocks();
 	initBoard();
