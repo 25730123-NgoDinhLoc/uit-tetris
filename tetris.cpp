@@ -253,6 +253,13 @@ void Tetris::drawSinglePiece(int piece, int rotation, int posX, int posY, bool i
 	}
 }
 
+int Tetris::calculateGhostPositionY() const {
+	int ghostY = pieceY;
+	while (!collides(currentPiece, currentRotation, pieceX, ghostY + 1))
+		++ghostY;
+	return ghostY;
+}
+
 void Tetris::run() {
 	initscr();
 	cbreak();
