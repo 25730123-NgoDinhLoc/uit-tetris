@@ -7,19 +7,19 @@
 
 using namespace std;
 
-Tetris::Tetris() : x(5), y(1), b(0), rot(0), next(0), score(0), lines(0), level(1), over(false) {
+Tetris::Tetris() : pieceX(5), pieceY(1), currentPiece(0), currentRotation(0), nextPiece(0), score(0), lines(0), level(1), gameOver(false) {
     srand(static_cast<unsigned int>(time(0)));
     initBlocks();
     initBoard();
-    b = rand() % P;
-    next = rand() % P;
+    currentPiece = rand() % NUM_PIECES;
+    nextPiece = rand() % NUM_PIECES;
 }
 
 void Tetris::initBlocks() {
     // Clear all first
-    for (int p = 0; p < P; ++p)
-        for (int i = 0; i < S; ++i)
-            for (int j = 0; j < S; ++j)
+    for (int p = 0; p < NUM_PIECES; ++p)
+        for (int i = 0; i < PIECE_SIZE; ++i)
+            for (int j = 0; j < PIECE_SIZE; ++j)
                 blocks[p][i][j] = ' ';
 
     // I piece (cyan)
@@ -45,79 +45,79 @@ void Tetris::initBlocks() {
 }
 
 void Tetris::initBoard() {
-    for (int i = 0; i < H; ++i)
-        for (int j = 0; j < W; ++j)
-            board[i][j] = (i == 0 || i == H - 1 || j == 0 || j == W - 1) ? '#' : ' ';
+    for (int i = 0; i < BOARD_HEIGHT; ++i)
+        for (int j = 0; j < BOARD_WIDTH; ++j)
+            board[i][j] = (i == 0 || i == BOARD_HEIGHT - 1 || j == 0 || j == BOARD_WIDTH - 1) ? '#' : ' ';
 }
 
 void Tetris::spawn() {
-    x = 5;
-    y = 1;
-    rot = 0;
-    b = next;
-    next = rand() % P;
-    if (collides(b, rot, x, y))
-        over = true;
+    pieceX = 5;
+    pieceY = 1;
+    currentRotation = 0;
+    currentPiece = nextPiece;
+    nextPiece = rand() % NUM_PIECES;
+    if (collides(currentPiece, currentRotation, pieceX, pieceY))
+        gameOver = true;
 }
 
-char Tetris::getCell(int piece, int rotation, int r, int c) const {
-    // Return the cell of `piece` at a given `rotation`.
+char Tetris::getCell(int piece, int pieceRotation, int row, int col) const {
+    // Return the cell of `piece` at a given `pieceRotation`.
     // On-the-fly 90-degree clockwise transforms:
-    //   0: (r, c)
-    //   1: (S-1-c, r)
-    //   2: (S-1-r, S-1-c)
-    //   3: (c, S-1-r)
-    switch (rotation % 4) {
-    case 0: return blocks[piece][r][c];
-    case 1: return blocks[piece][S - 1 - c][r];
-    case 2: return blocks[piece][S - 1 - r][S - 1 - c];
-    case 3: return blocks[piece][c][S - 1 - r];
+    //   0: (row, col)
+    //   1: (PIECE_SIZE-1-col, row)
+    //   2: (PIECE_SIZE-1-row, PIECE_SIZE-1-col)
+    //   3: (col, PIECE_SIZE-1-row)
+    switch (pieceRotation % 4) {
+    case 0: return blocks[piece][row][col];
+    case 1: return blocks[piece][PIECE_SIZE - 1 - col][row];
+    case 2: return blocks[piece][PIECE_SIZE - 1 - row][PIECE_SIZE - 1 - col];
+    case 3: return blocks[piece][col][PIECE_SIZE - 1 - row];
     }
     return ' ';
 }
 
-bool Tetris::collides(int piece, int rotation, int px, int py) const {
-    for (int i = 0; i < S; ++i)
-        for (int j = 0; j < S; ++j)
-            if (getCell(piece, rotation, i, j) != ' ') {
-                int xx = px + j;
-                int yy = py + i;
-                if (xx < 0 || xx >= W || yy < 0 || yy >= H || board[yy][xx] != ' ')
+bool Tetris::collides(int piece, int pieceRotation, int posX, int posY) const {
+    for (int i = 0; i < PIECE_SIZE; ++i)
+        for (int j = 0; j < PIECE_SIZE; ++j)
+            if (getCell(piece, pieceRotation, i, j) != ' ') {
+                int boardX = posX + j;
+                int boardY = posY + i;
+                if (boardX < 0 || boardX >= BOARD_WIDTH || boardY < 0 || boardY >= BOARD_HEIGHT || board[boardY][boardX] != ' ')
                     return true;
             }
     return false;
 }
 
-bool Tetris::canMove(int dx, int dy) const {
-    return !collides(b, rot, x + dx, y + dy);
+bool Tetris::canMove(int deltaX, int deltaY) const {
+    return !collides(currentPiece, currentRotation, pieceX + deltaX, pieceY + deltaY);
 }
 
 void Tetris::rotate() {
-    int nextRot = (rot + 1) % 4;
-    if (!collides(b, nextRot, x, y))
-        rot = nextRot;
+    int nextRotation = (currentRotation + 1) % 4;
+    if (!collides(currentPiece, nextRotation, pieceX, pieceY))
+        currentRotation = nextRotation;
 }
 
 void Tetris::lock() {
-    for (int i = 0; i < S; ++i)
-        for (int j = 0; j < S; ++j)
-            if (getCell(b, rot, i, j) != ' ')
-                board[y + i][x + j] = getCell(b, rot, i, j);
+    for (int i = 0; i < PIECE_SIZE; ++i)
+        for (int j = 0; j < PIECE_SIZE; ++j)
+            if (getCell(currentPiece, currentRotation, i, j) != ' ')
+                board[pieceY + i][pieceX + j] = getCell(currentPiece, currentRotation, i, j);
 }
 
 void Tetris::clearLines() {
     int cleared = 0;
-    for (int row = H - 2; row > 0; --row) {
+    for (int row = BOARD_HEIGHT - 2; row > 0; --row) {
         bool full = true;
-        for (int col = 1; col < W - 1; ++col)
+        for (int col = 1; col < BOARD_WIDTH - 1; ++col)
             if (board[row][col] == ' ') { full = false; break; }
 
         if (full) {
             ++cleared;
             for (int r = row; r > 1; --r)
-                for (int c = 1; c < W - 1; ++c)
+                for (int c = 1; c < BOARD_WIDTH - 1; ++c)
                     board[r][c] = board[r - 1][c];
-            for (int c = 1; c < W - 1; ++c)
+            for (int c = 1; c < BOARD_WIDTH - 1; ++c)
                 board[1][c] = ' ';
             ++row; // re-check this row
         }
@@ -125,8 +125,8 @@ void Tetris::clearLines() {
     if (cleared) {
         lines += cleared;
         // Simple scoring: 40, 100, 300, 1200 per level
-        int pts[] = { 0, 40, 100, 300, 1200 };
-        score += pts[cleared] * level;
+        int pointsTable[] = { 0, 40, 100, 300, 1200 };
+        score += pointsTable[cleared] * level;
         level = 1 + lines / 10;
     }
 }
@@ -135,26 +135,26 @@ void Tetris::draw() const {
     erase();
 
     // Draw board
-    for (int i = 0; i < H; ++i)
-        for (int j = 0; j < W; ++j)
+    for (int i = 0; i < BOARD_HEIGHT; ++i)
+        for (int j = 0; j < BOARD_WIDTH; ++j)
             mvaddch(i, j * 2, board[i][j]);
 
     // Draw active piece
-    for (int i = 0; i < S; ++i)
-        for (int j = 0; j < S; ++j)
-            if (getCell(b, rot, i, j) != ' ')
-                mvaddch(y + i, (x + j) * 2, getCell(b, rot, i, j));
+    for (int i = 0; i < PIECE_SIZE; ++i)
+        for (int j = 0; j < PIECE_SIZE; ++j)
+            if (getCell(currentPiece, currentRotation, i, j) != ' ')
+                mvaddch(pieceY + i, (pieceX + j) * 2, getCell(currentPiece, currentRotation, i, j));
 
     // Sidebar info
-    int col = W * 2 + 4;
+    int col = BOARD_WIDTH * 2 + 4;
     mvprintw(1, col, "Score: %d", score);
     mvprintw(2, col, "Lines: %d", lines);
     mvprintw(3, col, "Level: %d", level);
 
     mvprintw(5, col, "Next:");
-    for (int i = 0; i < S; ++i)
-        for (int j = 0; j < S; ++j)
-            mvaddch(6 + i, col + j * 2, blocks[next][i][j]);
+    for (int i = 0; i < PIECE_SIZE; ++i)
+        for (int j = 0; j < PIECE_SIZE; ++j)
+            mvaddch(6 + i, col + j * 2, blocks[nextPiece][i][j]);
 
     mvprintw(12, col, "Controls:");
     mvprintw(13, col, "A / D  Move");
@@ -163,8 +163,8 @@ void Tetris::draw() const {
     mvprintw(16, col, "Space  Hard Drop");
     mvprintw(17, col, "Q      Quit");
 
-    if (over)
-        mvprintw(H / 2, W, " GAME OVER ");
+    if (gameOver)
+        mvprintw(BOARD_HEIGHT / 2, BOARD_WIDTH, " GAME OVER ");
 
     refresh();
 }
@@ -180,16 +180,16 @@ void Tetris::run() {
     auto lastDrop = chrono::steady_clock::now();
     int dropMs = 500; // start speed
 
-    while (!over) {
-        int ch = getch();
-        if (ch == 'q' || ch == 'Q') break;
+    while (!gameOver) {
+        int key = getch();
+        if (key == 'q' || key == 'Q') break;
 
-        if (ch == 'a' || ch == KEY_LEFT) { if (canMove(-1, 0)) --x; }
-        if (ch == 'd' || ch == KEY_RIGHT) { if (canMove(1, 0)) ++x; }
-        if (ch == 'w' || ch == KEY_UP)    rotate();
-        if (ch == 's' || ch == KEY_DOWN) { if (canMove(0, 1)) ++y; }
-        if (ch == ' ') { // hard drop
-            while (canMove(0, 1)) ++y;
+        if (key == 'a' || key == KEY_LEFT) { if (canMove(-1, 0)) --pieceX; }
+        if (key == 'd' || key == KEY_RIGHT) { if (canMove(1, 0)) ++pieceX; }
+        if (key == 'w' || key == KEY_UP)    rotate();
+        if (key == 's' || key == KEY_DOWN) { if (canMove(0, 1)) ++pieceY; }
+        if (key == ' ') { // hard drop
+            while (canMove(0, 1)) ++pieceY;
             lock();
             clearLines();
             spawn();
@@ -198,7 +198,7 @@ void Tetris::run() {
         auto now = chrono::steady_clock::now();
         if (chrono::duration_cast<chrono::milliseconds>(now - lastDrop).count() > dropMs) {
             if (canMove(0, 1))
-                ++y;
+                ++pieceY;
             else {
                 lock();
                 clearLines();
@@ -213,7 +213,7 @@ void Tetris::run() {
     }
 
     // Wait for a key on game over before exit
-    if (over) {
+    if (gameOver) {
         nodelay(stdscr, FALSE);
         getch();
     }
