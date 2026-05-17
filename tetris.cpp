@@ -227,6 +227,32 @@ void Tetris::drawLockedBlocks() {
 	}
 }
 
+void Tetris::drawSinglePiece(int piece, int rotation, int posX, int posY, bool isGhost) {
+	for (int i = 0; i < PIECE_SIZE; ++i) {
+		for (int j = 0; j < PIECE_SIZE; ++j) {
+			char cell = getCell(piece, rotation, i, j);
+			if (cell == ' ') continue;
+			int boardCol = posX + j;
+			int boardRow = posY + i;
+			if (boardRow <= 0 || boardRow >= BOARD_HEIGHT - 1) continue;
+			if (boardCol <= 0 || boardCol >= BOARD_WIDTH - 1) continue;
+			int screenRow = boardRow;
+			int screenCol = boardCol * CELL_WIDTH;
+			int colorId = cell - 'A' + 1;
+			if (isGhost) {
+				attron(COLOR_PAIR(colorId));
+				mvaddstr(screenRow, screenCol, "::");
+				attroff(COLOR_PAIR(colorId));
+			}
+			else {
+				attron(COLOR_PAIR(colorId) | A_REVERSE);
+				mvaddstr(screenRow, screenCol, "  ");
+				attroff(COLOR_PAIR(colorId) | A_REVERSE);
+			}
+		}
+	}
+}
+
 void Tetris::run() {
 	initscr();
 	cbreak();
