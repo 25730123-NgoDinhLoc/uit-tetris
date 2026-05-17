@@ -316,6 +316,9 @@ void Tetris::drawPauseOverlay() {
 
 void Tetris::renderFrame() {
 	erase();
+	attron(COLOR_PAIR(8) | A_BOLD);
+	mvprintw(0, 0, "TETRIS");
+	attroff(COLOR_PAIR(8) | A_BOLD);
 	drawBorder();
 	drawLockedBlocks();
 	drawSinglePiece(currentPiece, currentRotation, pieceX, calculateGhostPositionY(), true);
