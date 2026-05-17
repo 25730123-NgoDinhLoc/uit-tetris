@@ -260,6 +260,27 @@ int Tetris::calculateGhostPositionY() const {
 	return ghostY;
 }
 
+void Tetris::drawNextPiecePreview() {
+	int sidebarCol = BOARD_WIDTH * CELL_WIDTH + 4;
+	int sidebarRow = 1;
+	attron(COLOR_PAIR(8));
+	mvprintw(sidebarRow, sidebarCol, "NEXT");
+	attroff(COLOR_PAIR(8));
+	for (int i = 0; i < PIECE_SIZE; ++i)
+		for (int j = 0; j < PIECE_SIZE; ++j)
+			mvaddstr(sidebarRow + 2 + i, sidebarCol + j * CELL_WIDTH, "  ");
+	for (int i = 0; i < PIECE_SIZE; ++i) {
+		for (int j = 0; j < PIECE_SIZE; ++j) {
+			char cell = blocks[nextPiece][i][j];
+			if (cell == ' ') continue;
+			int colorId = cell - 'A' + 1;
+			attron(COLOR_PAIR(colorId) | A_REVERSE);
+			mvaddstr(sidebarRow + 2 + i, sidebarCol + j * CELL_WIDTH, "  ");
+			attroff(COLOR_PAIR(colorId) | A_REVERSE);
+		}
+	}
+}
+
 void Tetris::run() {
 	initscr();
 	cbreak();
