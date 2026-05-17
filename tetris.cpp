@@ -281,6 +281,51 @@ void Tetris::drawNextPiecePreview() {
 	}
 }
 
+void Tetris::drawSidebar() {
+	int sidebarCol = BOARD_WIDTH * CELL_WIDTH + 4;
+	int sidebarRow = 8;
+	attron(COLOR_PAIR(8));
+	mvprintw(sidebarRow, sidebarCol, "SCORE: %-6d", score);
+	mvprintw(sidebarRow + 2, sidebarCol, "LEVEL: %-6d", level);
+	mvprintw(sidebarRow + 4, sidebarCol, "LINES: %-6d", lines);
+	mvprintw(sidebarRow + 7, sidebarCol, "CONTROLS");
+	mvprintw(sidebarRow + 8, sidebarCol, "  <- / ->  move");
+	mvprintw(sidebarRow + 9, sidebarCol, "  Up       rotate");
+	mvprintw(sidebarRow + 10, sidebarCol, "  Down     soft drop");
+	mvprintw(sidebarRow + 11, sidebarCol, "  Space    hard drop");
+	mvprintw(sidebarRow + 12, sidebarCol, "  Q        quit");
+	attroff(COLOR_PAIR(8));
+}
+
+void Tetris::drawGameOverOverlay() {
+	int centerCol = (BOARD_WIDTH * CELL_WIDTH) / 2 - 5;
+	int centerRow = BOARD_HEIGHT / 2;
+	attron(COLOR_PAIR(9) | A_BOLD);
+	mvprintw(centerRow, centerCol, "  GAME  OVER  ");
+	mvprintw(centerRow + 1, centerCol, "  press  Q    ");
+	attroff(COLOR_PAIR(9) | A_BOLD);
+}
+
+void Tetris::drawPauseOverlay() {
+	int centerCol = (BOARD_WIDTH * CELL_WIDTH) / 2 - 4;
+	int centerRow = BOARD_HEIGHT / 2;
+	attron(COLOR_PAIR(9) | A_BOLD);
+	mvprintw(centerRow, centerCol, "  PAUSED  ");
+	attroff(COLOR_PAIR(9) | A_BOLD);
+}
+
+void Tetris::renderFrame() {
+	erase();
+	drawBorder();
+	drawLockedBlocks();
+	drawSinglePiece(currentPiece, currentRotation, pieceX, calculateGhostPositionY(), true);
+	drawSinglePiece(currentPiece, currentRotation, pieceX, pieceY, false);
+	drawNextPiecePreview();
+	drawSidebar();
+	if (gameOver) drawGameOverOverlay();
+	refresh();
+}
+
 void Tetris::run() {
 	initscr();
 	cbreak();
