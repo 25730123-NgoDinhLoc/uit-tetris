@@ -131,44 +131,6 @@ void Tetris::clearLines() {
 	}
 }
 
-void Tetris::draw() const {
-	erase();
-
-	// Draw board
-	for (int i = 0; i < H; ++i)
-		for (int j = 0; j < W; ++j)
-			mvaddch(i, j * 2, board[i][j]);
-
-	// Draw active piece
-	for (int i = 0; i < S; ++i)
-		for (int j = 0; j < S; ++j)
-			if (getCell(b, rot, i, j) != ' ')
-				mvaddch(y + i, (x + j) * 2, getCell(b, rot, i, j));
-
-	// Sidebar info
-	int col = W * 2 + 4;
-	mvprintw(1, col, "Score: %d", score);
-	mvprintw(2, col, "Lines: %d", lines);
-	mvprintw(3, col, "Level: %d", level);
-
-	mvprintw(5, col, "Next:");
-	for (int i = 0; i < S; ++i)
-		for (int j = 0; j < S; ++j)
-			mvaddch(6 + i, col + j * 2, blocks[next][i][j]);
-
-	mvprintw(12, col, "Controls:");
-	mvprintw(13, col, "A / D  Move");
-	mvprintw(14, col, "W      Rotate");
-	mvprintw(15, col, "S      Soft Drop");
-	mvprintw(16, col, "Space  Hard Drop");
-	mvprintw(17, col, "Q      Quit");
-
-	if (over)
-		mvprintw(H / 2, W, " GAME OVER ");
-
-	refresh();
-}
-
 void Tetris::initializeColors() {
 	if (has_colors()) {
 		start_color();
