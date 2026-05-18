@@ -47,7 +47,7 @@ private:
 	void movePieceLeft();
     void movePieceRight();
     bool tryMoveDownOneCell();
-    bool processPlayerInput(int key);
+    bool processPlayerInput(int key, std::chrono::steady_clock::time_point& lastDrop);
     bool updateGravity(chrono::steady_clock::time_point& lastDrop);
     void lockPieceAndSpawnNext();
 	void initializeColors();

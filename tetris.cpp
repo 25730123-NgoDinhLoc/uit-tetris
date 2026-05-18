@@ -108,7 +108,7 @@ void Tetris::rotate() {
 		rot = nextRot;
 }
 
-bool Tetris::processPlayerInput(int key) {
+bool Tetris::processPlayerInput(int key, chrono::steady_clock::time_point& lastDrop) {
     bool needRender = false;
 	if (gameOver) return needRender;
     if (key == 'p' || key == 'P') {
@@ -129,11 +129,13 @@ bool Tetris::processPlayerInput(int key) {
 			case 's':
             case 'S':
                 if (!tryMoveDownOneCell()) lockPieceAndSpawnNext();
+				lastDrop = chrono::steady_clock::now();
                 needRender = true;
                 break;
             case ' ':
                 while (canMove(0, 1)) ++pieceY;
                 lockPieceAndSpawnNext();
+				lastDrop = chrono::steady_clock::now();
                 needRender = true;
                 break;
         }
@@ -380,7 +382,7 @@ void Tetris::run() {
 		int ch = getch();
 		if (key != ERR) {
             if (key == 'q' || key == 'Q') break;
-            needRender = processPlayerInput(key);
+            needRender = processPlayerInput(key, lastDrop);
 		}
 if (updateGravity(lastDrop))
         needRender = true;
