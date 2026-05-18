@@ -28,6 +28,8 @@ private:
 	int level;
 	bool gameOver;
 	bool isPaused;
+	int boardScreenRow;
+	int boardScreenCol;
 
 	void initBlocks();
 	void initBoard();
