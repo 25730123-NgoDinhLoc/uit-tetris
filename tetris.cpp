@@ -7,8 +7,7 @@
 
 using namespace std;
 
-Tetris::Tetris() : pieceX(5), pieceY(1), currentPiece(0), currentRotation(0), nextPiece(0), score(0), lines(0), level(1), gameOver(false), isPaused(false), boardScreenRow(1), boardScreenCol(2) {
-{
+Tetris::Tetris() : pieceX(5), pieceY(1), currentPiece(0), currentRotation(0), nextPiece(0), score(0), lines(0), level(1), gameOver(false), isPaused(false) {
 	srand(static_cast<unsigned int>(time(0)));
 	initBlocks();
 	initBoard();
@@ -107,6 +106,30 @@ void Tetris::rotate() {
 	int nextRot = (rot + 1) % 4;
 	if (!collides(b, nextRot, x, y))
 		rot = nextRot;
+}
+
+bool Tetris::processPlayerInput(int key) {
+    bool needRender = false;
+    if (key == 'p' || key == 'P') {
+        isPaused = !isPaused;
+        needRender = true;
+    } else if (!isPaused) {
+        switch (key) {
+            case KEY_LEFT:  movePieceLeft();  needRender = true; break;
+            case KEY_RIGHT: movePieceRight(); needRender = true; break;
+            case KEY_UP:    rotate();         needRender = true; break;
+            case KEY_DOWN:
+                if (!tryMoveDownOneCell()) lockPieceAndSpawnNext();
+                needRender = true;
+                break;
+            case ' ':
+                while (canMove(0, 1)) ++pieceY;
+                lockPieceAndSpawnNext();
+                needRender = true;
+                break;
+        }
+    }
+    return needRender;
 }
 
 void Tetris::movePieceLeft() {
