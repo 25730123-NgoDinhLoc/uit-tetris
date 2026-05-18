@@ -110,6 +110,7 @@ void Tetris::rotate() {
 
 bool Tetris::processPlayerInput(int key) {
     bool needRender = false;
+	if (gameOver) return needRender;
     if (key == 'p' || key == 'P') {
         isPaused = !isPaused;
         needRender = true;
