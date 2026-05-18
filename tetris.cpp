@@ -15,6 +15,12 @@ Tetris::Tetris() : pieceX(5), pieceY(1), currentPiece(0), currentRotation(0), ne
 	b = rand() % P;
 	next = rand() % P;
 }
+	initscr();
+    cbreak();
+    noecho();
+    nodelay(stdscr, TRUE);
+    keypad(stdscr, TRUE);
+    curs_set(0);
 
 Tetris::~Tetris() {
     endwin();
@@ -297,12 +303,6 @@ void Tetris::renderFrame() {
 }
 
 void Tetris::run() {
-	initscr();
-	cbreak();
-	noecho();
-	nodelay(stdscr, TRUE);
-	keypad(stdscr, TRUE);
-	curs_set(0);
 	initializeColors();
 
 	auto lastDrop = chrono::steady_clock::now();
