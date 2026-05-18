@@ -16,6 +16,10 @@ Tetris::Tetris() : pieceX(5), pieceY(1), currentPiece(0), currentRotation(0), ne
 	next = rand() % P;
 }
 
+Tetris::~Tetris() {
+    endwin();
+}
+
 void Tetris::initBlocks() {
 	// Clear all first
 	for (int p = 0; p < P; ++p)

@@ -6,6 +6,7 @@
 class Tetris {
 public:
 	Tetris();
+	~Tetris();
 	void run();
 
 private:
