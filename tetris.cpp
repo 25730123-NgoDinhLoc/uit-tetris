@@ -164,7 +164,11 @@ void Tetris::lock() {
 			if (getCell(b, rot, i, j) != ' ')
 				board[y + i][x + j] = getCell(b, rot, i, j);
 }
-
+void Tetris::lockPieceAndSpawnNext() {
+    lock();
+    clearLines();
+    spawn();
+}
 void Tetris::clearLines() {
 	int cleared = 0;
 	for (int row = H - 2; row > 0; --row) {
