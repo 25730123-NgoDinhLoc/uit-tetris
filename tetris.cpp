@@ -109,6 +109,24 @@ void Tetris::rotate() {
 		rot = nextRot;
 }
 
+void Tetris::movePieceLeft() {
+    if (!collides(currentPiece, currentRotation, pieceX - 1, pieceY))
+        --pieceX;
+}
+
+void Tetris::movePieceRight() {
+    if (!collides(currentPiece, currentRotation, pieceX + 1, pieceY))
+        ++pieceX;
+}
+
+bool Tetris::tryMoveDownOneCell() {
+    if (!collides(currentPiece, currentRotation, pieceX, pieceY + 1)) {
+        ++pieceY;
+        return true;
+    }
+    return false;
+}
+
 void Tetris::lock() {
 	for (int i = 0; i < S; ++i)
 		for (int j = 0; j < S; ++j)
