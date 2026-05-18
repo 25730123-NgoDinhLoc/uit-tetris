@@ -1,6 +1,6 @@
 #ifndef TETRIS_H
 #define TETRIS_H
-
+#include <chrono>
 // Simple Tetris game using ncurses.
 // Stores one orientation per piece and rotates on-the-fly.
 class Tetris {
@@ -44,7 +44,12 @@ private:
 	void lock();
 	void clearLines();
 	void draw() const;
-
+	void movePieceLeft();
+    void movePieceRight();
+    bool tryMoveDownOneCell();
+    bool processPlayerInput(int key);
+    bool updateGravity(chrono::steady_clock::time_point& lastDrop);
+    void lockPieceAndSpawnNext();
 	void initializeColors();
 	void drawBorder();
 	void drawLockedBlocks();
