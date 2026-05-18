@@ -375,7 +375,7 @@ void Tetris::run() {
 	initializeColors();
 
 	auto lastDrop = chrono::steady_clock::now();
-	
+	draw(); // render initial state before waiting for input
 
 	while (!over) {
 		bool needRender = false;
