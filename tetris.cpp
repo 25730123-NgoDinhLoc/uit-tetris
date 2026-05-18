@@ -115,10 +115,18 @@ bool Tetris::processPlayerInput(int key) {
         needRender = true;
     } else if (!isPaused) {
         switch (key) {
-            case KEY_LEFT:  movePieceLeft();  needRender = true; break;
-            case KEY_RIGHT: movePieceRight(); needRender = true; break;
-            case KEY_UP:    rotate();         needRender = true; break;
+            case KEY_LEFT:
+            case 'a':
+            case 'A':  movePieceLeft();  needRender = true; break;
+            case KEY_RIGHT:
+            case 'd':
+            case 'D':  movePieceRight(); needRender = true; break;
+            case KEY_UP:
+            case 'w':
+            case 'W':  rotate();         needRender = true; break;
             case KEY_DOWN:
+			case 's':
+            case 'S':
                 if (!tryMoveDownOneCell()) lockPieceAndSpawnNext();
                 needRender = true;
                 break;
