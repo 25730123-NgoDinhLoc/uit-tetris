@@ -1,0 +1,14 @@
+# Build artifacts
+*.o
+*.obj
+tetris
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Local environment
+.local/
