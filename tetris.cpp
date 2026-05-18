@@ -381,7 +381,10 @@ void Tetris::run() {
 		bool needRender = false;
 		int ch = getch();
 		if (key != ERR) {
-            if (key == 'q' || key == 'Q') break;
+        if (key == 'q' || key == 'Q') {
+                nodelay(stdscr, FALSE);
+                break;
+            }
             needRender = processPlayerInput(key, lastDrop);
 		}
 if (updateGravity(lastDrop))
