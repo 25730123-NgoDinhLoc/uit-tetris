@@ -355,48 +355,42 @@ void Tetris::renderFrame() {
 	refresh();
 }
 
+bool Tetris::updateGravity(chrono::steady_clock::time_point& lastDrop) {
+    if (gameOver || isPaused) return false;
+    auto now = chrono::steady_clock::now();
+    int dropMs = max(50, 500 - (level - 1) * 50);
+    if (chrono::duration_cast<chrono::milliseconds>(now - lastDrop).count() > dropMs) {
+        if (!tryMoveDownOneCell())
+            lockPieceAndSpawnNext();
+        lastDrop = now;
+        return true;
+    }
+    return false;
+}
+
 void Tetris::run() {
 	initializeColors();
 
 	auto lastDrop = chrono::steady_clock::now();
-	int dropMs = 500; // start speed
+	
 
 	while (!over) {
+		bool needRender = false;
 		int ch = getch();
-		if (ch == 'q' || ch == 'Q') break;
-
-		if (ch == 'a' || ch == KEY_LEFT) { if (canMove(-1, 0)) --x; }
-		if (ch == 'd' || ch == KEY_RIGHT) { if (canMove(1, 0)) ++x; }
-		if (ch == 'w' || ch == KEY_UP)    rotate();
-		if (ch == 's' || ch == KEY_DOWN) { if (canMove(0, 1)) ++y; }
-		if (ch == ' ') { // hard drop
-			while (canMove(0, 1)) ++y;
-			lock();
-			clearLines();
-			spawn();
+		if (key != ERR) {
+            if (key == 'q' || key == 'Q') break;
+            needRender = processPlayerInput(key);
 		}
-
-		auto now = chrono::steady_clock::now();
-		if (chrono::duration_cast<chrono::milliseconds>(now - lastDrop).count() > dropMs) {
-			if (canMove(0, 1))
-				++y;
-			else {
-				lock();
-				clearLines();
-				spawn();
-			}
-			lastDrop = now;
-			dropMs = max(50, 500 - (level - 1) * 50);
-		}
-
+if (updateGravity(lastDrop))
+        needRender = true;
 		renderFrame();
-		this_thread::sleep_for(chrono::milliseconds(16)); // ~60 FPS
+	if (needRender)
+            draw();
+        this_thread::sleep_for(chrono::milliseconds(16));
 	}
 
-	// Wait for a key on game over before exit
 	if (over) {
 		nodelay(stdscr, FALSE);
 		getch();
 	}
-	endwin();
 }
