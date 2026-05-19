@@ -19,6 +19,7 @@ private:
 
 	char board[H][W];
 	char blocks[P][S][S];
+	char pieceRotations[NUM_PIECES][NUM_ROTATIONS][GRID_SIZE][GRID_SIZE];
 
 	int x, y;       // current piece position (top-left of 4x4 box)
 	int b;          // current piece index
@@ -46,7 +47,7 @@ private:
     void rotatePiece();
     bool checkCollision(int piece, int rotation, int posX, int posY) const;
     void lockPieceToBoard();
-    void spawnNewPiece()
+    void spawnNewPiece();
 
 	void lock();
 	void clearLines();
