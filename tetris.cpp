@@ -7,13 +7,22 @@
 
 using namespace std;
 
-Tetris::Tetris() : pieceX(5), pieceY(1), currentPiece(0), currentRotation(0), nextPiece(0), score(0), lines(0), level(1), gameOver(false), isPaused(false), boardScreenRow(1), boardScreenCol(2) {
-	{
+Tetris::Tetris() : pieceX(5), pieceY(1), currentPiece(0), currentRotation(0), nextPiece(0), score(0), lines(0), level(1), gameOver(false), isPaused(false) {
 	srand(static_cast<unsigned int>(time(0)));
 	initBlocks();
 	initBoard();
 	b = rand() % P;
 	next = rand() % P;
+	initscr();
+    cbreak();
+    noecho();
+    nodelay(stdscr, TRUE);
+    keypad(stdscr, TRUE);
+    curs_set(0);
+}
+
+Tetris::~Tetris() {
+    endwin();
 }
 
 void Tetris::initBlocks() {
@@ -99,13 +108,70 @@ void Tetris::rotate() {
 		rot = nextRot;
 }
 
+bool Tetris::processPlayerInput(int key, chrono::steady_clock::time_point& lastDrop) {
+    bool needRender = false;
+	if (gameOver) return needRender;
+    if (key == 'p' || key == 'P') {
+        isPaused = !isPaused;
+        needRender = true;
+    } else if (!isPaused) {
+        switch (key) {
+            case KEY_LEFT:
+            case 'a':
+            case 'A':  movePieceLeft();  needRender = true; break;
+            case KEY_RIGHT:
+            case 'd':
+            case 'D':  movePieceRight(); needRender = true; break;
+            case KEY_UP:
+            case 'w':
+            case 'W':  rotate();         needRender = true; break;
+            case KEY_DOWN:
+			case 's':
+            case 'S':
+                if (!tryMoveDownOneCell()) lockPieceAndSpawnNext();
+				lastDrop = chrono::steady_clock::now();
+                needRender = true;
+                break;
+            case ' ':
+                while (canMove(0, 1)) ++pieceY;
+                lockPieceAndSpawnNext();
+				lastDrop = chrono::steady_clock::now();
+                needRender = true;
+                break;
+        }
+    }
+    return needRender;
+}
+
+void Tetris::movePieceLeft() {
+    if (!collides(currentPiece, currentRotation, pieceX - 1, pieceY))
+        --pieceX;
+}
+
+void Tetris::movePieceRight() {
+    if (!collides(currentPiece, currentRotation, pieceX + 1, pieceY))
+        ++pieceX;
+}
+
+bool Tetris::tryMoveDownOneCell() {
+    if (!collides(currentPiece, currentRotation, pieceX, pieceY + 1)) {
+        ++pieceY;
+        return true;
+    }
+    return false;
+}
+
 void Tetris::lock() {
 	for (int i = 0; i < S; ++i)
 		for (int j = 0; j < S; ++j)
 			if (getCell(b, rot, i, j) != ' ')
 				board[y + i][x + j] = getCell(b, rot, i, j);
 }
-
+void Tetris::lockPieceAndSpawnNext() {
+    lock();
+    clearLines();
+    spawn();
+}
 void Tetris::clearLines() {
 	int cleared = 0;
 	for (int row = H - 2; row > 0; --row) {
@@ -292,54 +358,45 @@ void Tetris::renderFrame() {
 	refresh();
 }
 
+bool Tetris::updateGravity(chrono::steady_clock::time_point& lastDrop) {
+    if (gameOver || isPaused) return false;
+    auto now = chrono::steady_clock::now();
+    int dropMs = max(50, 500 - (level - 1) * 50);
+    if (chrono::duration_cast<chrono::milliseconds>(now - lastDrop).count() > dropMs) {
+        if (!tryMoveDownOneCell())
+            lockPieceAndSpawnNext();
+        lastDrop = now;
+        return true;
+    }
+    return false;
+}
+
 void Tetris::run() {
-	initscr();
-	cbreak();
-	noecho();
-	nodelay(stdscr, TRUE);
-	keypad(stdscr, TRUE);
-	curs_set(0);
 	initializeColors();
 
 	auto lastDrop = chrono::steady_clock::now();
-	int dropMs = 500; // start speed
+	draw(); // render initial state before waiting for input
 
 	while (!over) {
+		bool needRender = false;
 		int ch = getch();
-		if (ch == 'q' || ch == 'Q') break;
-
-		if (ch == 'a' || ch == KEY_LEFT) { if (canMove(-1, 0)) --x; }
-		if (ch == 'd' || ch == KEY_RIGHT) { if (canMove(1, 0)) ++x; }
-		if (ch == 'w' || ch == KEY_UP)    rotate();
-		if (ch == 's' || ch == KEY_DOWN) { if (canMove(0, 1)) ++y; }
-		if (ch == ' ') { // hard drop
-			while (canMove(0, 1)) ++y;
-			lock();
-			clearLines();
-			spawn();
+		if (key != ERR) {
+        if (key == 'q' || key == 'Q') {
+                nodelay(stdscr, FALSE);
+                break;
+            }
+            needRender = processPlayerInput(key, lastDrop);
 		}
-
-		auto now = chrono::steady_clock::now();
-		if (chrono::duration_cast<chrono::milliseconds>(now - lastDrop).count() > dropMs) {
-			if (canMove(0, 1))
-				++y;
-			else {
-				lock();
-				clearLines();
-				spawn();
-			}
-			lastDrop = now;
-			dropMs = max(50, 500 - (level - 1) * 50);
-		}
-
+if (updateGravity(lastDrop))
+        needRender = true;
 		renderFrame();
-		this_thread::sleep_for(chrono::milliseconds(16)); // ~60 FPS
+	if (needRender)
+            draw();
+        this_thread::sleep_for(chrono::milliseconds(16));
 	}
 
-	// Wait for a key on game over before exit
 	if (over) {
 		nodelay(stdscr, FALSE);
 		getch();
 	}
-	endwin();
 }
