@@ -89,8 +89,18 @@ void Tetris::initializePieces() {
     pieceRotations[INDEX_Z][1][0][2] = pieceRotations[INDEX_Z][1][1][1] = pieceRotations[INDEX_Z][1][1][2] = pieceRotations[INDEX_Z][1][2][1] = 'Z';
     pieceRotations[INDEX_Z][2][0][0] = pieceRotations[INDEX_Z][2][0][1] = pieceRotations[INDEX_Z][2][1][1] = pieceRotations[INDEX_Z][2][1][2] = 'Z';
     pieceRotations[INDEX_Z][3][0][1] = pieceRotations[INDEX_Z][3][1][0] = pieceRotations[INDEX_Z][3][1][1] = pieceRotations[INDEX_Z][3][2][0] = 'Z';
-    
-    // Các khối khác sẽ được thêm ở commit sau
+
+     // Khối J - blue
+    pieceRotations[INDEX_J][0][0][0] = pieceRotations[INDEX_J][0][1][0] = pieceRotations[INDEX_J][0][1][1] = pieceRotations[INDEX_J][0][1][2] = 'J';
+    pieceRotations[INDEX_J][1][0][1] = pieceRotations[INDEX_J][1][0][2] = pieceRotations[INDEX_J][1][1][1] = pieceRotations[INDEX_J][1][2][1] = 'J';
+    pieceRotations[INDEX_J][2][1][0] = pieceRotations[INDEX_J][2][1][1] = pieceRotations[INDEX_J][2][1][2] = pieceRotations[INDEX_J][2][2][2] = 'J';
+    pieceRotations[INDEX_J][3][0][1] = pieceRotations[INDEX_J][3][1][1] = pieceRotations[INDEX_J][3][2][0] = pieceRotations[INDEX_J][3][2][1] = 'J';
+
+    // Khối L - white
+    pieceRotations[INDEX_L][0][0][2] = pieceRotations[INDEX_L][0][1][0] = pieceRotations[INDEX_L][0][1][1] = pieceRotations[INDEX_L][0][1][2] = 'L';
+    pieceRotations[INDEX_L][1][0][1] = pieceRotations[INDEX_L][1][1][1] = pieceRotations[INDEX_L][1][2][1] = pieceRotations[INDEX_L][1][2][2] = 'L';
+    pieceRotations[INDEX_L][2][1][0] = pieceRotations[INDEX_L][2][1][1] = pieceRotations[INDEX_L][2][1][2] = pieceRotations[INDEX_L][2][2][0] = 'L';
+    pieceRotations[INDEX_L][3][0][0] = pieceRotations[INDEX_L][3][0][1] = pieceRotations[INDEX_L][3][1][1] = pieceRotations[INDEX_L][3][2][1] = 'L';
 }
 
 void Tetris::spawn() {
