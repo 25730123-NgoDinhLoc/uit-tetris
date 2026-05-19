@@ -93,6 +93,14 @@ bool Tetris::canMove(int dx, int dy) const {
 	return !collides(b, rot, x + dx, y + dy);
 }
 
+bool Tetris::tryMoveDownOneCell() {
+    if (!collides(currentPiece, currentRotation, pieceX, pieceY + 1)) {
+        ++pieceY;
+        return true;
+    }
+    return false;
+}
+
 void Tetris::rotate() {
 	int nextRot = (rot + 1) % 4;
 	if (!collides(b, nextRot, x, y))
@@ -105,33 +113,57 @@ void Tetris::lock() {
 			if (getCell(b, rot, i, j) != ' ')
 				board[y + i][x + j] = getCell(b, rot, i, j);
 }
-
-void Tetris::clearLines() {
-	int cleared = 0;
-	for (int row = H - 2; row > 0; --row) {
-		bool full = true;
-		for (int col = 1; col < W - 1; ++col)
-			if (board[row][col] == ' ') { full = false; break; }
-
-		if (full) {
-			++cleared;
-			for (int r = row; r > 1; --r)
-				for (int c = 1; c < W - 1; ++c)
-					board[r][c] = board[r - 1][c];
-			for (int c = 1; c < W - 1; ++c)
-				board[1][c] = ' ';
-			++row; // re-check this row
-		}
-	}
-	if (cleared) {
-		lines += cleared;
-		// Simple scoring: 40, 100, 300, 1200 per level
-		int pts[] = { 0, 40, 100, 300, 1200 };
-		score += pts[cleared] * level;
-		level = 1 + lines / 10;
-	}
+void Tetris::lockPieceAndSpawnNext() {
+    lock();
+    int linesJustCleared = clearFullLines();
+    if (linesJustCleared > 0) {
+        lines += linesJustCleared;
+        score += calculateScoreForLines(linesJustCleared) * level;
+        level = 1 + lines / 10;
+    }
+    spawn();
 }
 
+bool Tetris::isRowFull(int row) const {
+    for (int col = 1; col < BOARD_WIDTH - 1; ++col)
+        if (board[row][col] == ' ') return false;
+    return true;
+}
+
+void Tetris::deleteRowAndShiftDown(int deletedRow) {
+    for (int r = deletedRow; r > 1; --r)
+        for (int c = 1; c < BOARD_WIDTH - 1; ++c)
+            board[r][c] = board[r - 1][c];
+    for (int c = 1; c < BOARD_WIDTH - 1; ++c)
+        board[1][c] = ' ';
+}
+
+int Tetris::clearFullLines() {
+    int linesCleared = 0;
+	for (int row = H - 2; row > 0; --row) {
+		if (isRowFull(row)) {
+            deleteRowAndShiftDown(row);
+			++linesCleared;
+			++row;
+		}
+	}
+	 return linesCleared;
+}
+
+int Tetris::calculateScoreForLines(int numLines) const {
+    switch (numLines) {
+        case 1: return 100;
+        case 2: return 300;
+        case 3: return 500;
+        case 4: return 800;
+        default: return 0;
+    }
+}
+
+int Tetris::calculateGravityDelayMs() const {
+    int delay = 600 - (level - 1) * 50;
+    return (delay < 50) ? 50 : delay;
+}
 void Tetris::initializeColors() {
 	if (has_colors()) {
 		start_color();
@@ -248,9 +280,9 @@ void Tetris::drawSidebar() {
 	int sidebarCol = BOARD_WIDTH * CELL_WIDTH + 4;
 	int sidebarRow = 8;
 	attron(COLOR_PAIR(8));
-	mvprintw(sidebarRow, sidebarCol, "SCORE: %-6d", score);
-	mvprintw(sidebarRow + 2, sidebarCol, "LEVEL: %-6d", level);
-	mvprintw(sidebarRow + 4, sidebarCol, "LINES: %-6d", lines);
+	mvprintw(1, col, "SCORE: %-6d", score);
+    mvprintw(2, col, "LINES: %-6d", lines);
+    mvprintw(3, col, "LEVEL: %-6d", level);
 	mvprintw(sidebarRow + 7, sidebarCol, "CONTROLS");
 	mvprintw(sidebarRow + 8, sidebarCol, "  <- / ->  move");
 	mvprintw(sidebarRow + 9, sidebarCol, "  Up       rotate");
@@ -302,7 +334,6 @@ void Tetris::run() {
 	initializeColors();
 
 	auto lastDrop = chrono::steady_clock::now();
-	int dropMs = 500; // start speed
 
 	while (!over) {
 		int ch = getch();
@@ -311,25 +342,28 @@ void Tetris::run() {
 		if (ch == 'a' || ch == KEY_LEFT) { if (canMove(-1, 0)) --x; }
 		if (ch == 'd' || ch == KEY_RIGHT) { if (canMove(1, 0)) ++x; }
 		if (ch == 'w' || ch == KEY_UP)    rotate();
-		if (ch == 's' || ch == KEY_DOWN) { if (canMove(0, 1)) ++y; }
+		if (key == 's' || key == KEY_DOWN) {
+            if (canMove(0, 1)) { ++pieceY; score += 1; }
+            else { lockPieceAndSpawnNext(); }
+            lastDrop = chrono::steady_clock::now();
+        }
 		if (ch == ' ') { // hard drop
-			while (canMove(0, 1)) ++y;
-			lock();
-			clearLines();
-			spawn();
+			int droppedCells = 0;
+            while (canMove(0, 1)) { ++pieceY; ++droppedCells; }
+            score += droppedCells * 2;
+            lockPieceAndSpawnNext();
+			lastDrop = chrono::steady_clock::now();
 		}
 
 		auto now = chrono::steady_clock::now();
-		if (chrono::duration_cast<chrono::milliseconds>(now - lastDrop).count() > dropMs) {
+		if (chrono::duration_cast<chrono::milliseconds>(now - lastDrop).count() > calculateGravityDelayMs()) {
 			if (canMove(0, 1))
 				++y;
 			else {
-				lock();
-				clearLines();
-				spawn();
+				lockPieceAndSpawnNext();
 			}
 			lastDrop = now;
-			dropMs = max(50, 500 - (level - 1) * 50);
+			
 		}
 
 		renderFrame();
