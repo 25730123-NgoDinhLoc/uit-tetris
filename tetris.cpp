@@ -62,8 +62,22 @@ void Tetris::initBoard() {
 
 void Tetris::initializePieces() {
     // Khối I - cyan
-    blocks[INDEX_I][1][0] = blocks[INDEX_I][1][1] = blocks[INDEX_I][1][2] = blocks[INDEX_I][1][3] = 'I';
-    blocks[INDEX_I][0][1] = blocks[INDEX_I][1][1] = blocks[INDEX_I][2][1] = blocks[INDEX_I][3][1] = 'I';
+    pieceRotations[INDEX_I][0][1][0] = pieceRotations[INDEX_I][0][1][1] = pieceRotations[INDEX_I][0][1][2] = pieceRotations[INDEX_I][0][1][3] = 'I';
+    pieceRotations[INDEX_I][1][0][1] = pieceRotations[INDEX_I][1][1][1] = pieceRotations[INDEX_I][1][2][1] = pieceRotations[INDEX_I][1][3][1] = 'I';
+    pieceRotations[INDEX_I][2][2][0] = pieceRotations[INDEX_I][2][2][1] = pieceRotations[INDEX_I][2][2][2] = pieceRotations[INDEX_I][2][2][3] = 'I';
+    pieceRotations[INDEX_I][3][0][2] = pieceRotations[INDEX_I][3][1][2] = pieceRotations[INDEX_I][3][2][2] = pieceRotations[INDEX_I][3][3][2] = 'I';
+
+    // Khối O - yellow (giống nhau ở cả 4 trạng thái)
+    for (int r = 0; r < NUM_ROTATIONS; ++r) {
+        pieceRotations[INDEX_O][r][1][1] = pieceRotations[INDEX_O][r][1][2] = pieceRotations[INDEX_O][r][2][1] = pieceRotations[INDEX_O][r][2][2] = 'O';
+    }
+
+    // Khối T - magenta
+    pieceRotations[INDEX_T][0][1][0] = pieceRotations[INDEX_T][0][1][1] = pieceRotations[INDEX_T][0][1][2] = pieceRotations[INDEX_T][0][2][1] = 'T';
+    pieceRotations[INDEX_T][1][0][1] = pieceRotations[INDEX_T][1][1][1] = pieceRotations[INDEX_T][1][1][2] = pieceRotations[INDEX_T][1][2][1] = 'T';
+    pieceRotations[INDEX_T][2][1][0] = pieceRotations[INDEX_T][2][1][1] = pieceRotations[INDEX_T][2][1][2] = pieceRotations[INDEX_T][2][0][1] = 'T';
+    pieceRotations[INDEX_T][3][0][1] = pieceRotations[INDEX_T][3][1][0] = pieceRotations[INDEX_T][3][1][1] = pieceRotations[INDEX_T][3][2][1] = 'T';
+    
     // Các khối khác sẽ được thêm ở commit sau
 }
 
