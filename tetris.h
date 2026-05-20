@@ -13,14 +13,11 @@ private:
 	static constexpr int W = 12;   // board width including borders
 	static constexpr int H = 22;   // board height including borders
 	static constexpr int P = 7;    // number of pieces
-	static constexpr int NUM_ROTATIONS = 4;  // number of rotations
 	static constexpr int S = 4;    // piece size (4x4)
-	static constexpr int GRID_SIZE = 4;      // grid size (4x4)
-	
+	static constexpr int CELL_WIDTH = 2;     // each cell draws 2 chars wide
 
 	char board[H][W];
 	char blocks[P][S][S];
-	char pieceRotations[NUM_PIECES][NUM_ROTATIONS][GRID_SIZE][GRID_SIZE];
 
 	int x, y;       // current piece position (top-left of 4x4 box)
 	int b;          // current piece index
@@ -43,12 +40,6 @@ private:
 	bool collides(int piece, int rotation, int px, int py) const;
 	bool canMove(int dx, int dy) const;
 	void rotate();
-
-	void initializePieces();
-    void rotatePiece();
-    bool checkCollision(int piece, int rotation, int posX, int posY) const;
-    void lockPieceToBoard();
-    void spawnNewPiece();
 
 	void lock();
 	void clearLines();
