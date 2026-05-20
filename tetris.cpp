@@ -141,10 +141,20 @@ bool Tetris::canMove(int deltaX, int deltaY) const {
     return !collides(currentPiece, currentRotation, pieceX + deltaX, pieceY + deltaY);
 }
 
+void Tetris::rotatePiece() {
+    int nextRotation = (currentRotation + 1) % NUM_ROTATIONS;
+    int horizontalShifts[] = {0, -1, 1, -2, 2};
+    for (int shift : horizontalShifts) {
+        if (!checkCollision(currentPiece, nextRotation, pieceX + shift, pieceY)) {
+            currentRotation = nextRotation;
+            pieceX += shift;
+            return;
+        }
+    }
+}
+
 void Tetris::rotate() {
-    int nextRotation = (currentRotation + 1) % 4;
-    if (!collides(currentPiece, nextRotation, pieceX, pieceY))
-        currentRotation = nextRotation;
+     rotatePiece();
 }
 
 bool Tetris::processPlayerInput(int key, chrono::steady_clock::time_point& lastDrop) {
