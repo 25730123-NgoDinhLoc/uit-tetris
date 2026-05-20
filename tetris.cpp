@@ -118,16 +118,23 @@ char Tetris::getCell(int piece, int pieceRotation, int row, int col) const {
     // Truy cập trực tiếp từ bảng tra pieceRotations thay vì tính on-the-fly.
     return pieceRotations[piece][pieceRotation % 4][row][col];
 
-bool Tetris::collides(int piece, int pieceRotation, int posX, int posY) const {
-    for (int i = 0; i < PIECE_SIZE; ++i)
-        for (int j = 0; j < PIECE_SIZE; ++j)
-            if (getCell(piece, pieceRotation, i, j) != ' ') {
-                int boardX = posX + j;
-                int boardY = posY + i;
-                if (boardX < 0 || boardX >= BOARD_WIDTH || boardY < 0 || boardY >= BOARD_HEIGHT || board[boardY][boardX] != ' ')
-                    return true;
-            }
+bool Tetris::checkCollision(int piece, int rotation, int posX, int posY) const {
+    for (int row = 0; row < GRID_SIZE; ++row) {
+        for (int col = 0; col < GRID_SIZE; ++col) {
+            if (pieceRotations[piece][rotation][row][col] == ' ') continue;
+            int boardX = posX + col;
+            int boardY = posY + row;
+            if (boardX < 0 || boardX >= BOARD_WIDTH) return true;
+            if (boardY >= BOARD_HEIGHT) return true;
+            if (boardY < 0) continue;
+            if (board[boardY][boardX] != ' ') return true;
+        }
+    }
     return false;
+}
+
+bool Tetris::collides(int piece, int pieceRotation, int posX, int posY) const {
+    return checkCollision(piece, pieceRotation, posX, posY);
 }
 
 bool Tetris::canMove(int deltaX, int deltaY) const {
