@@ -7,112 +7,239 @@
 
 using namespace std;
 
-Tetris::Tetris() : pieceX(5), pieceY(1), currentPiece(0), currentRotation(0), nextPiece(0), score(0), lines(0), level(1), gameOver(false), isPaused(false), boardScreenRow(1), boardScreenCol(2) {
-	{
-	srand(static_cast<unsigned int>(time(0)));
-	initBlocks();
-	initBoard();
-	b = rand() % P;
-	next = rand() % P;
+namespace {
+    constexpr int INDEX_I = 0;
+    constexpr int INDEX_O = 1;
+    constexpr int INDEX_T = 2;
+    constexpr int INDEX_S = 3;
+    constexpr int INDEX_Z = 4;
+    constexpr int INDEX_J = 5;
+    constexpr int INDEX_L = 6;
+} // namespace
+
+Tetris::Tetris() : pieceX(5), pieceY(1), currentPiece(0), currentRotation(0), nextPiece(0), score(0), lines(0), level(1), gameOver(false), isPaused(false) {
+    srand(static_cast<unsigned int>(time(0)));
+    initializePieces();
+    initBlocks();
+    initBoard();
+    currentPiece = rand() % NUM_PIECES;
+    nextPiece = rand() % NUM_PIECES;
 }
 
 void Tetris::initBlocks() {
-	// Clear all first
-	for (int p = 0; p < P; ++p)
-		for (int i = 0; i < S; ++i)
-			for (int j = 0; j < S; ++j)
-				blocks[p][i][j] = ' ';
+    // Clear all first
+    for (int p = 0; p < NUM_PIECES; ++p)
+        for (int i = 0; i < PIECE_SIZE; ++i)
+            for (int j = 0; j < PIECE_SIZE; ++j)
+                blocks[p][i][j] = ' ';
 
-	// I piece (cyan)
-	blocks[0][1][0] = blocks[0][1][1] = blocks[0][1][2] = blocks[0][1][3] = 'I';
+    // I piece (cyan)
+    blocks[0][1][0] = blocks[0][1][1] = blocks[0][1][2] = blocks[0][1][3] = 'I';
 
-	// O piece (yellow)
-	blocks[1][1][1] = blocks[1][1][2] = blocks[1][2][1] = blocks[1][2][2] = 'O';
+    // O piece (yellow)
+    blocks[1][1][1] = blocks[1][1][2] = blocks[1][2][1] = blocks[1][2][2] = 'O';
 
-	// T piece (magenta)
-	blocks[2][1][0] = blocks[2][1][1] = blocks[2][1][2] = blocks[2][2][1] = 'T';
+    // T piece (magenta)
+    blocks[2][1][0] = blocks[2][1][1] = blocks[2][1][2] = blocks[2][2][1] = 'T';
 
-	// S piece (green)
-	blocks[3][1][1] = blocks[3][1][2] = blocks[3][2][0] = blocks[3][2][1] = 'S';
+    // S piece (green)
+    blocks[3][1][1] = blocks[3][1][2] = blocks[3][2][0] = blocks[3][2][1] = 'S';
 
-	// Z piece (red)
-	blocks[4][1][0] = blocks[4][1][1] = blocks[4][2][1] = blocks[4][2][2] = 'Z';
+    // Z piece (red)
+    blocks[4][1][0] = blocks[4][1][1] = blocks[4][2][1] = blocks[4][2][2] = 'Z';
 
-	// J piece (blue)
-	blocks[5][0][0] = blocks[5][1][0] = blocks[5][1][1] = blocks[5][1][2] = 'J';
+    // J piece (blue)
+    blocks[5][0][0] = blocks[5][1][0] = blocks[5][1][1] = blocks[5][1][2] = 'J';
 
-	// L piece (white)
-	blocks[6][0][2] = blocks[6][1][0] = blocks[6][1][1] = blocks[6][1][2] = 'L';
+    // L piece (white)
+    blocks[6][0][2] = blocks[6][1][0] = blocks[6][1][1] = blocks[6][1][2] = 'L';
 }
 
 void Tetris::initBoard() {
-	for (int i = 0; i < H; ++i)
-		for (int j = 0; j < W; ++j)
-			board[i][j] = (i == 0 || i == H - 1 || j == 0 || j == W - 1) ? '#' : ' ';
+    for (int i = 0; i < BOARD_HEIGHT; ++i)
+        for (int j = 0; j < BOARD_WIDTH; ++j)
+            board[i][j] = (i == 0 || i == BOARD_HEIGHT - 1 || j == 0 || j == BOARD_WIDTH - 1) ? '#' : ' ';
+}
+
+void Tetris::initializePieces() {
+    // Clear all rotations first
+    for (int p = 0; p < NUM_PIECES; ++p)
+        for (int r = 0; r < NUM_ROTATIONS; ++r)
+            for (int i = 0; i < GRID_SIZE; ++i)
+                for (int j = 0; j < GRID_SIZE; ++j)
+                    pieceRotations[p][r][i][j] = ' ';
+
+    // Khối I - cyan
+    pieceRotations[INDEX_I][0][1][0] = pieceRotations[INDEX_I][0][1][1] = pieceRotations[INDEX_I][0][1][2] = pieceRotations[INDEX_I][0][1][3] = 'I';
+    pieceRotations[INDEX_I][1][0][1] = pieceRotations[INDEX_I][1][1][1] = pieceRotations[INDEX_I][1][2][1] = pieceRotations[INDEX_I][1][3][1] = 'I';
+    pieceRotations[INDEX_I][2][2][0] = pieceRotations[INDEX_I][2][2][1] = pieceRotations[INDEX_I][2][2][2] = pieceRotations[INDEX_I][2][2][3] = 'I';
+    pieceRotations[INDEX_I][3][0][2] = pieceRotations[INDEX_I][3][1][2] = pieceRotations[INDEX_I][3][2][2] = pieceRotations[INDEX_I][3][3][2] = 'I';
+
+    // Khối O - yellow (giống nhau ở cả 4 trạng thái)
+    for (int r = 0; r < NUM_ROTATIONS; ++r) {
+pieceRotations[INDEX_O][r][1][1] = pieceRotations[INDEX_O][r][1][2] = pieceRotations[INDEX_O][r][2][1] = pieceRotations[INDEX_O][r][2][2] = 'O';
+    }
+
+    // Khối T - magenta
+    pieceRotations[INDEX_T][0][1][0] = pieceRotations[INDEX_T][0][1][1] = pieceRotations[INDEX_T][0][1][2] = pieceRotations[INDEX_T][0][2][1] = 'T';
+    pieceRotations[INDEX_T][1][0][1] = pieceRotations[INDEX_T][1][1][1] = pieceRotations[INDEX_T][1][1][2] = pieceRotations[INDEX_T][1][2][1] = 'T';
+    pieceRotations[INDEX_T][2][1][0] = pieceRotations[INDEX_T][2][1][1] = pieceRotations[INDEX_T][2][1][2] = pieceRotations[INDEX_T][2][0][1] = 'T';
+    pieceRotations[INDEX_T][3][0][1] = pieceRotations[INDEX_T][3][1][0] = pieceRotations[INDEX_T][3][1][1] = pieceRotations[INDEX_T][3][2][1] = 'T';
+
+      // Khối S - green
+    pieceRotations[INDEX_S][0][1][1] = pieceRotations[INDEX_S][0][1][2] = pieceRotations[INDEX_S][0][2][0] = pieceRotations[INDEX_S][0][2][1] = 'S';
+    pieceRotations[INDEX_S][1][0][1] = pieceRotations[INDEX_S][1][1][1] = pieceRotations[INDEX_S][1][1][2] = pieceRotations[INDEX_S][1][2][2] = 'S';
+    pieceRotations[INDEX_S][2][0][1] = pieceRotations[INDEX_S][2][0][2] = pieceRotations[INDEX_S][2][1][0] = pieceRotations[INDEX_S][2][1][1] = 'S';
+    pieceRotations[INDEX_S][3][0][0] = pieceRotations[INDEX_S][3][1][0] = pieceRotations[INDEX_S][3][1][1] = pieceRotations[INDEX_S][3][2][1] = 'S';
+
+    // Khối Z - red
+    pieceRotations[INDEX_Z][0][1][0] = pieceRotations[INDEX_Z][0][1][1] = pieceRotations[INDEX_Z][0][2][1] = pieceRotations[INDEX_Z][0][2][2] = 'Z';
+    pieceRotations[INDEX_Z][1][0][2] = pieceRotations[INDEX_Z][1][1][1] = pieceRotations[INDEX_Z][1][1][2] = pieceRotations[INDEX_Z][1][2][1] = 'Z';
+    pieceRotations[INDEX_Z][2][0][0] = pieceRotations[INDEX_Z][2][0][1] = pieceRotations[INDEX_Z][2][1][1] = pieceRotations[INDEX_Z][2][1][2] = 'Z';
+    pieceRotations[INDEX_Z][3][0][1] = pieceRotations[INDEX_Z][3][1][0] = pieceRotations[INDEX_Z][3][1][1] = pieceRotations[INDEX_Z][3][2][0] = 'Z';
+
+     // Khối J - blue
+    pieceRotations[INDEX_J][0][0][0] = pieceRotations[INDEX_J][0][1][0] = pieceRotations[INDEX_J][0][1][1] = pieceRotations[INDEX_J][0][1][2] = 'J';
+    pieceRotations[INDEX_J][1][0][1] = pieceRotations[INDEX_J][1][0][2] = pieceRotations[INDEX_J][1][1][1] = pieceRotations[INDEX_J][1][2][1] = 'J';
+    pieceRotations[INDEX_J][2][1][0] = pieceRotations[INDEX_J][2][1][1] = pieceRotations[INDEX_J][2][1][2] = pieceRotations[INDEX_J][2][2][2] = 'J';
+    pieceRotations[INDEX_J][3][0][1] = pieceRotations[INDEX_J][3][1][1] = pieceRotations[INDEX_J][3][2][0] = pieceRotations[INDEX_J][3][2][1] = 'J';
+
+    // Khối L - white
+    pieceRotations[INDEX_L][0][0][2] = pieceRotations[INDEX_L][0][1][0] = pieceRotations[INDEX_L][0][1][1] = pieceRotations[INDEX_L][0][1][2] = 'L';
+    pieceRotations[INDEX_L][1][0][1] = pieceRotations[INDEX_L][1][1][1] = pieceRotations[INDEX_L][1][2][1] = pieceRotations[INDEX_L][1][2][2] = 'L';
+pieceRotations[INDEX_L][2][1][0] = pieceRotations[INDEX_L][2][1][1] = pieceRotations[INDEX_L][2][1][2] = pieceRotations[INDEX_L][2][2][0] = 'L';
+    pieceRotations[INDEX_L][3][0][0] = pieceRotations[INDEX_L][3][0][1] = pieceRotations[INDEX_L][3][1][1] = pieceRotations[INDEX_L][3][2][1] = 'L';
+}
+
+void Tetris::spawnNewPiece() {
+    pieceX = BOARD_WIDTH / 2 - 2;
+    pieceY = 1;
+    currentRotation = 0;
+    currentPiece = nextPiece;
+    nextPiece = rand() % NUM_PIECES;
+    if (collides(currentPiece, currentRotation, pieceX, pieceY))
+        gameOver = true;
 }
 
 void Tetris::spawn() {
-	x = 5;
-	y = 1;
-	rot = 0;
-	b = next;
-	next = rand() % P;
-	if (collides(b, rot, x, y))
-		over = true;
+    spawnNewPiece();
 }
 
-char Tetris::getCell(int piece, int rotation, int r, int c) const {
-	// Return the cell of `piece` at a given `rotation`.
-	// On-the-fly 90-degree clockwise transforms:
-	//   0: (r, c)
-	//   1: (S-1-c, r)
-	//   2: (S-1-r, S-1-c)
-	//   3: (c, S-1-r)
-	switch (rotation % 4) {
-	case 0: return blocks[piece][r][c];
-	case 1: return blocks[piece][S - 1 - c][r];
-	case 2: return blocks[piece][S - 1 - r][S - 1 - c];
-	case 3: return blocks[piece][c][S - 1 - r];
-	}
-	return ' ';
+char Tetris::getCell(int piece, int pieceRotation, int row, int col) const {
+    // Truy cập trực tiếp từ bảng tra pieceRotations thay vì tính on-the-fly.
+    return pieceRotations[piece][pieceRotation % 4][row][col];
 }
 
-bool Tetris::collides(int piece, int rotation, int px, int py) const {
-	for (int i = 0; i < S; ++i)
-		for (int j = 0; j < S; ++j)
-			if (getCell(piece, rotation, i, j) != ' ') {
-				int xx = px + j;
-				int yy = py + i;
-				if (xx < 0 || xx >= W || yy < 0 || yy >= H || board[yy][xx] != ' ')
-					return true;
-			}
-	return false;
+bool Tetris::checkCollision(int piece, int rotation, int posX, int posY) const {
+    for (int row = 0; row < GRID_SIZE; ++row) {
+        for (int col = 0; col < GRID_SIZE; ++col) {
+            if (pieceRotations[piece][rotation][row][col] == ' ') continue;
+            int boardX = posX + col;
+            int boardY = posY + row;
+            if (boardX < 0 || boardX >= BOARD_WIDTH) return true;
+            if (boardY >= BOARD_HEIGHT) return true;
+            if (boardY < 0) continue;
+            if (board[boardY][boardX] != ' ') return true;
+        }
+    }
+    return false;
 }
 
-bool Tetris::canMove(int dx, int dy) const {
-	return !collides(b, rot, x + dx, y + dy);
+bool Tetris::collides(int piece, int pieceRotation, int posX, int posY) const {
+    return checkCollision(piece, pieceRotation, posX, posY);
+}
+
+bool Tetris::canMove(int deltaX, int deltaY) const {
+    return !collides(currentPiece, currentRotation, pieceX + deltaX, pieceY + deltaY);
+}
+
+void Tetris::rotatePiece() {
+    int nextRotation = (currentRotation + 1) % NUM_ROTATIONS;
+    int horizontalShifts[] = {0, -1, 1, -2, 2};
+    for (int shift : horizontalShifts) {
+        if (!checkCollision(currentPiece, nextRotation, pieceX + shift, pieceY)) {
+            currentRotation = nextRotation;
+            pieceX += shift;
+            return;
+        }
+    }
+}
+
+void Tetris::rotate() {
+     rotatePiece();
+}
+
+void Tetris::lockPieceToBoard() {
+    for (int row = 0; row < GRID_SIZE; ++row) {
+        for (int col = 0; col < GRID_SIZE; ++col) {
+            if (pieceRotations[currentPiece][currentRotation][row][col] == ' ') continue;
+            int boardX = pieceX + col;
+            int boardY = pieceY + row;
+            if (boardY >= 0 && boardY < BOARD_HEIGHT && boardX >= 0 && boardX < BOARD_WIDTH) {
+                board[boardY][boardX] = pieceRotations[currentPiece][currentRotation][row][col];
+            }
+        }
+    }
+}
+
+bool Tetris::processPlayerInput(int key, chrono::steady_clock::time_point& lastDrop) {
+    bool needRender = false;
+	if (gameOver) return needRender;
+    if (key == 'p' || key == 'P') {
+        isPaused = !isPaused;
+        needRender = true;
+    } else if (!isPaused) {
+        switch (key) {
+            case KEY_LEFT:
+            case 'a':
+case 'A':  movePieceLeft();  needRender = true; break;
+            case KEY_RIGHT:
+            case 'd':
+            case 'D':  movePieceRight(); needRender = true; break;
+            case KEY_UP:
+            case 'w':
+            case 'W':  rotate();         needRender = true; break;
+            case KEY_DOWN:
+			case 's':
+            case 'S':
+                if (!tryMoveDownOneCell()) lockPieceAndSpawnNext();
+				lastDrop = chrono::steady_clock::now();
+                needRender = true;
+                break;
+            case ' ':
+                int droppedCells = 0;
+                while (canMove(0, 1)) { ++pieceY; ++droppedCells; }
+                score += droppedCells * 2;
+                lockPieceAndSpawnNext();
+                needRender = true;
+                break;
+        }
+    }
+    return needRender;
+}
+
+void Tetris::movePieceLeft() {
+    if (!collides(currentPiece, currentRotation, pieceX - 1, pieceY))
+        --pieceX;
+}
+
+void Tetris::movePieceRight() {
+    if (!collides(currentPiece, currentRotation, pieceX + 1, pieceY))
+        ++pieceX;
 }
 
 bool Tetris::tryMoveDownOneCell() {
     if (!collides(currentPiece, currentRotation, pieceX, pieceY + 1)) {
         ++pieceY;
-        return true;
+        return true; 
     }
     return false;
 }
 
-void Tetris::rotate() {
-	int nextRot = (rot + 1) % 4;
-	if (!collides(b, nextRot, x, y))
-		rot = nextRot;
+void Tetris::lock() {
+   lockPieceToBoard();            
 }
 
-void Tetris::lock() {
-	for (int i = 0; i < S; ++i)
-		for (int j = 0; j < S; ++j)
-			if (getCell(b, rot, i, j) != ' ')
-				board[y + i][x + j] = getCell(b, rot, i, j);
-}
 void Tetris::lockPieceAndSpawnNext() {
     lock();
     int linesJustCleared = clearFullLines();
@@ -140,14 +267,15 @@ void Tetris::deleteRowAndShiftDown(int deletedRow) {
 
 int Tetris::clearFullLines() {
     int linesCleared = 0;
-	for (int row = H - 2; row > 0; --row) {
-		if (isRowFull(row)) {
+    for (int row = BOARD_HEIGHT - 2; row > 0; --row) {
+        if (isRowFull(row)) {
             deleteRowAndShiftDown(row);
-			++linesCleared;
-			++row;
-		}
-	}
-	 return linesCleared;
+            ++linesCleared;
+            ++row;
+        }
+    }
+
+    return linesCleared;
 }
 
 int Tetris::calculateScoreForLines(int numLines) const {
@@ -164,164 +292,56 @@ int Tetris::calculateGravityDelayMs() const {
     int delay = 600 - (level - 1) * 50;
     return (delay < 50) ? 50 : delay;
 }
-void Tetris::initializeColors() {
-	if (has_colors()) {
-		start_color();
-		use_default_colors();
-		init_pair(1, COLOR_CYAN, COLOR_BLACK);
-		init_pair(2, COLOR_YELLOW, COLOR_BLACK);
-		init_pair(3, COLOR_MAGENTA, COLOR_BLACK);
-		init_pair(4, COLOR_GREEN, COLOR_BLACK);
-		init_pair(5, COLOR_RED, COLOR_BLACK);
-		init_pair(6, COLOR_BLUE, COLOR_BLACK);
-		init_pair(7, COLOR_WHITE, COLOR_BLACK);
-		init_pair(8, COLOR_WHITE, COLOR_BLACK);
-		init_pair(9, COLOR_BLACK, COLOR_WHITE);
-	}
+
+void Tetris::draw() const {
+    erase();
+
+    // Draw board
+    for (int i = 0; i < BOARD_HEIGHT; ++i)
+        for (int j = 0; j < BOARD_WIDTH; ++j)
+            mvaddch(i, j * 2, board[i][j]);
+
+    // Draw active piece
+    for (int i = 0; i < PIECE_SIZE; ++i)
+        for (int j = 0; j < PIECE_SIZE; ++j)
+			if (getCell(currentPiece, currentRotation, i, j) != ' ')
+                mvaddch(pieceY + i, (pieceX + j) * 2, getCell(currentPiece, currentRotation, i, j));
+
+    // Sidebar info
+    int col = BOARD_WIDTH * 2 + 4;
+    mvprintw(1, col, "Score: %d", score);
+    mvprintw(2, col, "Lines: %d", lines);
+    mvprintw(3, col, "Level: %d", level);
+
+    mvprintw(5, col, "Next:");
+    for (int i = 0; i < PIECE_SIZE; ++i)
+        for (int j = 0; j < PIECE_SIZE; ++j)
+            mvaddch(6 + i, col + j * 2, blocks[nextPiece][i][j]);
+
+    mvprintw(12, col, "Controls:");
+    mvprintw(13, col, "A / D  Move");
+    mvprintw(14, col, "W      Rotate");
+    mvprintw(15, col, "S      Soft Drop");
+    mvprintw(16, col, "Space  Hard Drop");
+    mvprintw(17, col, "Q      Quit");
+
+    if (gameOver)
+        mvprintw(BOARD_HEIGHT / 2, BOARD_WIDTH, " GAME OVER ");
+
+    refresh();
 }
 
-void Tetris::drawBorder() {
-	attron(COLOR_PAIR(8));
-	int topRow = 0;
-	int bottomRow = BOARD_HEIGHT - 1;
-	int leftCol = 0;
-	int rightCol = (BOARD_WIDTH - 1) * CELL_WIDTH;
-
-	mvaddch(topRow, leftCol, ACS_ULCORNER);
-	mvaddch(topRow, rightCol, ACS_URCORNER);
-	mvaddch(bottomRow, leftCol, ACS_LLCORNER);
-	mvaddch(bottomRow, rightCol, ACS_LRCORNER);
-
-	for (int col = leftCol + 1; col < rightCol; ++col) {
-		mvaddch(topRow, col, ACS_HLINE);
-		mvaddch(bottomRow, col, ACS_HLINE);
-	}
-	for (int row = topRow + 1; row < bottomRow; ++row) {
-		mvaddch(row, leftCol, ACS_VLINE);
-		mvaddch(row, rightCol, ACS_VLINE);
-	}
-	attroff(COLOR_PAIR(8));
-}
-
-void Tetris::drawLockedBlocks() {
-	for (int row = 1; row < BOARD_HEIGHT - 1; ++row) {
-		for (int col = 1; col < BOARD_WIDTH - 1; ++col) {
-			char cell = board[row][col];
-			int screenRow = row;
-			int screenCol = col * CELL_WIDTH;
-			if (cell == ' ') {
-				mvaddstr(screenRow, screenCol, " .");
-			}
-			else {
-				int colorId = cell - 'A' + 1;
-				attron(COLOR_PAIR(colorId) | A_REVERSE);
-				mvaddstr(screenRow, screenCol, "  ");
-				attroff(COLOR_PAIR(colorId) | A_REVERSE);
-			}
-		}
-	}
-}
-
-void Tetris::drawSinglePiece(int piece, int rotation, int posX, int posY, bool isGhost) {
-	for (int i = 0; i < PIECE_SIZE; ++i) {
-		for (int j = 0; j < PIECE_SIZE; ++j) {
-			char cell = getCell(piece, rotation, i, j);
-			if (cell == ' ') continue;
-			int boardCol = posX + j;
-			int boardRow = posY + i;
-			if (boardRow <= 0 || boardRow >= BOARD_HEIGHT - 1) continue;
-			if (boardCol <= 0 || boardCol >= BOARD_WIDTH - 1) continue;
-			int screenRow = boardRow;
-			int screenCol = boardCol * CELL_WIDTH;
-			int colorId = cell - 'A' + 1;
-			if (isGhost) {
-				attron(COLOR_PAIR(colorId));
-				mvaddstr(screenRow, screenCol, "::");
-				attroff(COLOR_PAIR(colorId));
-			}
-			else {
-				attron(COLOR_PAIR(colorId) | A_REVERSE);
-				mvaddstr(screenRow, screenCol, "  ");
-				attroff(COLOR_PAIR(colorId) | A_REVERSE);
-			}
-		}
-	}
-}
-
-int Tetris::calculateGhostPositionY() const {
-	int ghostY = pieceY;
-	while (!collides(currentPiece, currentRotation, pieceX, ghostY + 1))
-		++ghostY;
-	return ghostY;
-}
-
-void Tetris::drawNextPiecePreview() {
-	int sidebarCol = BOARD_WIDTH * CELL_WIDTH + 4;
-	int sidebarRow = 1;
-	attron(COLOR_PAIR(8));
-	mvprintw(sidebarRow, sidebarCol, "NEXT");
-	attroff(COLOR_PAIR(8));
-	for (int i = 0; i < PIECE_SIZE; ++i)
-		for (int j = 0; j < PIECE_SIZE; ++j)
-			mvaddstr(sidebarRow + 2 + i, sidebarCol + j * CELL_WIDTH, "  ");
-	for (int i = 0; i < PIECE_SIZE; ++i) {
-		for (int j = 0; j < PIECE_SIZE; ++j) {
-			char cell = blocks[nextPiece][i][j];
-			if (cell == ' ') continue;
-			int colorId = cell - 'A' + 1;
-			attron(COLOR_PAIR(colorId) | A_REVERSE);
-			mvaddstr(sidebarRow + 2 + i, sidebarCol + j * CELL_WIDTH, "  ");
-			attroff(COLOR_PAIR(colorId) | A_REVERSE);
-		}
-	}
-}
-
-void Tetris::drawSidebar() {
-	int sidebarCol = BOARD_WIDTH * CELL_WIDTH + 4;
-	int sidebarRow = 8;
-	attron(COLOR_PAIR(8));
-	mvprintw(1, col, "SCORE: %-6d", score);
-    mvprintw(2, col, "LINES: %-6d", lines);
-    mvprintw(3, col, "LEVEL: %-6d", level);
-	mvprintw(sidebarRow + 7, sidebarCol, "CONTROLS");
-	mvprintw(sidebarRow + 8, sidebarCol, "  <- / ->  move");
-	mvprintw(sidebarRow + 9, sidebarCol, "  Up       rotate");
-	mvprintw(sidebarRow + 10, sidebarCol, "  Down     soft drop");
-	mvprintw(sidebarRow + 11, sidebarCol, "  Space    hard drop");
-	mvprintw(sidebarRow + 12, sidebarCol, "  Q        quit");
-	attroff(COLOR_PAIR(8));
-}
-
-void Tetris::drawGameOverOverlay() {
-	int centerCol = (BOARD_WIDTH * CELL_WIDTH) / 2 - 5;
-	int centerRow = BOARD_HEIGHT / 2;
-	attron(COLOR_PAIR(9) | A_BOLD);
-	mvprintw(centerRow, centerCol, "  GAME  OVER  ");
-	mvprintw(centerRow + 1, centerCol, "  press  Q    ");
-	attroff(COLOR_PAIR(9) | A_BOLD);
-}
-
-void Tetris::drawPauseOverlay() {
-	int centerCol = (BOARD_WIDTH * CELL_WIDTH) / 2 - 4;
-	int centerRow = BOARD_HEIGHT / 2;
-	attron(COLOR_PAIR(9) | A_BOLD);
-	mvprintw(centerRow, centerCol, "  PAUSED  ");
-	attroff(COLOR_PAIR(9) | A_BOLD);
-}
-
-void Tetris::renderFrame() {
-	erase();
-	attron(COLOR_PAIR(8) | A_BOLD);
-	mvprintw(0, 0, "TETRIS");
-	attroff(COLOR_PAIR(8) | A_BOLD);
-	drawBorder();
-	drawLockedBlocks();
-	drawSinglePiece(currentPiece, currentRotation, pieceX, calculateGhostPositionY(), true);
-	drawSinglePiece(currentPiece, currentRotation, pieceX, pieceY, false);
-	drawNextPiecePreview();
-	drawSidebar();
-	if (gameOver) drawGameOverOverlay();
-	refresh();
+bool Tetris::updateGravity(chrono::steady_clock::time_point& lastDrop) {
+    if (gameOver || isPaused) return false;
+    auto now = chrono::steady_clock::now();
+    int dropMs = max(50, 500 - (level - 1) * 50);
+    if (chrono::duration_cast<chrono::milliseconds>(now - lastDrop).count() > dropMs) {
+        if (!tryMoveDownOneCell())
+            lockPieceAndSpawnNext();
+        lastDrop = now;
+        return true;
+    }
+    return false;
 }
 
 void Tetris::run() {
@@ -335,14 +355,14 @@ void Tetris::run() {
 
 	auto lastDrop = chrono::steady_clock::now();
 
-	while (!over) {
+	while (!gameOver) {
 		int ch = getch();
 		if (ch == 'q' || ch == 'Q') break;
 
-		if (ch == 'a' || ch == KEY_LEFT) { if (canMove(-1, 0)) --x; }
-		if (ch == 'd' || ch == KEY_RIGHT) { if (canMove(1, 0)) ++x; }
+		if (ch == 'a' || ch == KEY_LEFT) { if (canMove(-1, 0)) --pieceX; }
+		if (ch == 'd' || ch == KEY_RIGHT) { if (canMove(1, 0)) ++pieceX; }
 		if (ch == 'w' || ch == KEY_UP)    rotate();
-		if (key == 's' || key == KEY_DOWN) {
+		if (ch == 's' || ch == KEY_DOWN) {
             if (canMove(0, 1)) { ++pieceY; score += 1; }
             else { lockPieceAndSpawnNext(); }
             lastDrop = chrono::steady_clock::now();
@@ -358,12 +378,12 @@ void Tetris::run() {
 		auto now = chrono::steady_clock::now();
 		if (chrono::duration_cast<chrono::milliseconds>(now - lastDrop).count() > calculateGravityDelayMs()) {
 			if (canMove(0, 1))
-				++y;
+				++pieceY;
 			else {
 				lockPieceAndSpawnNext();
 			}
 			lastDrop = now;
-			
+
 		}
 
 		renderFrame();
@@ -371,9 +391,15 @@ void Tetris::run() {
 	}
 
 	// Wait for a key on game over before exit
-	if (over) {
+	if (gameOver) {
 		nodelay(stdscr, FALSE);
 		getch();
 	}
 	endwin();
+}
+
+void Tetris::initializeColors() {}
+
+void Tetris::renderFrame() {
+	draw();
 }
