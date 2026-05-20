@@ -7,13 +7,23 @@
 
 using namespace std;
 
-Tetris::Tetris() : pieceX(5), pieceY(1), currentPiece(0), currentRotation(0), nextPiece(0), score(0), lines(0), level(1), gameOver(false), isPaused(false), boardScreenRow(1), boardScreenCol(2) {
-	{
-	srand(static_cast<unsigned int>(time(0)));
-	initBlocks();
-	initBoard();
-	b = rand() % P;
-	next = rand() % P;
+namespace {
+    constexpr int INDEX_I = 0;
+    constexpr int INDEX_O = 1;
+    constexpr int INDEX_T = 2;
+    constexpr int INDEX_S = 3;
+    constexpr int INDEX_Z = 4;
+    constexpr int INDEX_J = 5;
+    constexpr int INDEX_L = 6;
+} // namespace
+
+Tetris::Tetris() : pieceX(5), pieceY(1), currentPiece(0), currentRotation(0), nextPiece(0), score(0), lines(0), level(1), gameOver(false) {
+    srand(static_cast<unsigned int>(time(0)));
+    initializePieces();
+    initBoard();
+    currentPiece = rand() % NUM_PIECES;
+    nextPiece = rand() % NUM_PIECES;
+
 }
 
 void Tetris::initBlocks() {
@@ -105,20 +115,8 @@ void Tetris::spawn() {
 }
 
 char Tetris::getCell(int piece, int pieceRotation, int row, int col) const {
-    // Return the cell of `piece` at a given `pieceRotation`.
-    // On-the-fly 90-degree clockwise transforms:
-    //   0: (row, col)
-    //   1: (PIECE_SIZE-1-col, row)
-    //   2: (PIECE_SIZE-1-row, PIECE_SIZE-1-col)
-    //   3: (col, PIECE_SIZE-1-row)
-    switch (pieceRotation % 4) {
-    case 0: return blocks[piece][row][col];
-    case 1: return blocks[piece][PIECE_SIZE - 1 - col][row];
-    case 2: return blocks[piece][PIECE_SIZE - 1 - row][PIECE_SIZE - 1 - col];
-    case 3: return blocks[piece][col][PIECE_SIZE - 1 - row];
-    }
-    return ' ';
-}
+    // Truy cập trực tiếp từ bảng tra pieceRotations thay vì tính on-the-fly.
+    return pieceRotations[piece][pieceRotation % 4][row][col];
 
 bool Tetris::collides(int piece, int pieceRotation, int posX, int posY) const {
     for (int i = 0; i < PIECE_SIZE; ++i)
