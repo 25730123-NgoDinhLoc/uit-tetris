@@ -7,22 +7,13 @@
 
 using namespace std;
 
-namespace {
-constexpr int INDEX_I = 0;
-constexpr int INDEX_O = 1;
-constexpr int INDEX_T = 2;
-constexpr int INDEX_S = 3;
-constexpr int INDEX_Z = 4;
-constexpr int INDEX_J = 5;
-constexpr int INDEX_L = 6;
-} // namespace
-
-Tetris::Tetris() : pieceX(5), pieceY(1), currentPiece(0), currentRotation(0), nextPiece(0), score(0), lines(0), level(1), gameOver(false) {
-    srand(static_cast<unsigned int>(time(0)));
-    initializePieces();
-    initBoard();
-    currentPiece = rand() % NUM_PIECES;
-    nextPiece = rand() % NUM_PIECES;
+Tetris::Tetris() : pieceX(5), pieceY(1), currentPiece(0), currentRotation(0), nextPiece(0), score(0), lines(0), level(1), gameOver(false), isPaused(false), boardScreenRow(1), boardScreenCol(2) {
+	{
+	srand(static_cast<unsigned int>(time(0)));
+	initBlocks();
+	initBoard();
+	b = rand() % P;
+	next = rand() % P;
 }
 
 void Tetris::initBlocks() {
@@ -151,13 +142,70 @@ void Tetris::rotate() {
         currentRotation = nextRotation;
 }
 
+bool Tetris::processPlayerInput(int key, chrono::steady_clock::time_point& lastDrop) {
+    bool needRender = false;
+	if (gameOver) return needRender;
+    if (key == 'p' || key == 'P') {
+        isPaused = !isPaused;
+        needRender = true;
+    } else if (!isPaused) {
+        switch (key) {
+            case KEY_LEFT:
+            case 'a':
+            case 'A':  movePieceLeft();  needRender = true; break;
+            case KEY_RIGHT:
+            case 'd':
+            case 'D':  movePieceRight(); needRender = true; break;
+            case KEY_UP:
+            case 'w':
+            case 'W':  rotate();         needRender = true; break;
+            case KEY_DOWN:
+			case 's':
+            case 'S':
+                if (!tryMoveDownOneCell()) lockPieceAndSpawnNext();
+				lastDrop = chrono::steady_clock::now();
+                needRender = true;
+                break;
+            case ' ':
+                while (canMove(0, 1)) ++pieceY;
+                lockPieceAndSpawnNext();
+				lastDrop = chrono::steady_clock::now();
+                needRender = true;
+                break;
+        }
+    }
+    return needRender;
+}
+
+void Tetris::movePieceLeft() {
+    if (!collides(currentPiece, currentRotation, pieceX - 1, pieceY))
+        --pieceX;
+}
+
+void Tetris::movePieceRight() {
+    if (!collides(currentPiece, currentRotation, pieceX + 1, pieceY))
+        ++pieceX;
+}
+
+bool Tetris::tryMoveDownOneCell() {
+    if (!collides(currentPiece, currentRotation, pieceX, pieceY + 1)) {
+        ++pieceY;
+        return true;
+    }
+    return false;
+}
+
 void Tetris::lock() {
     for (int i = 0; i < PIECE_SIZE; ++i)
         for (int j = 0; j < PIECE_SIZE; ++j)
             if (getCell(currentPiece, currentRotation, i, j) != ' ')
                 board[pieceY + i][pieceX + j] = getCell(currentPiece, currentRotation, i, j);
 }
-
+void Tetris::lockPieceAndSpawnNext() {
+    lock();
+    clearLines();
+    spawn();
+}
 void Tetris::clearLines() {
     int cleared = 0;
     for (int row = BOARD_HEIGHT - 2; row > 0; --row) {
@@ -222,53 +270,67 @@ void Tetris::draw() const {
     refresh();
 }
 
+bool Tetris::updateGravity(chrono::steady_clock::time_point& lastDrop) {
+    if (gameOver || isPaused) return false;
+    auto now = chrono::steady_clock::now();
+    int dropMs = max(50, 500 - (level - 1) * 50);
+    if (chrono::duration_cast<chrono::milliseconds>(now - lastDrop).count() > dropMs) {
+        if (!tryMoveDownOneCell())
+            lockPieceAndSpawnNext();
+        lastDrop = now;
+        return true;
+    }
+    return false;
+}
+
 void Tetris::run() {
-    initscr();
-    cbreak();
-    noecho();
-    nodelay(stdscr, TRUE);
-    keypad(stdscr, TRUE);
-    curs_set(0);
+	initscr();
+	cbreak();
+	noecho();
+	nodelay(stdscr, TRUE);
+	keypad(stdscr, TRUE);
+	curs_set(0);
+	initializeColors();
 
-    auto lastDrop = chrono::steady_clock::now();
-    int dropMs = 500; // start speed
+	auto lastDrop = chrono::steady_clock::now();
+	int dropMs = 500; // start speed
 
-    while (!gameOver) {
-        int key = getch();
-        if (key == 'q' || key == 'Q') break;
+	while (!over) {
+		int ch = getch();
+		if (ch == 'q' || ch == 'Q') break;
 
-        if (key == 'a' || key == KEY_LEFT) { if (canMove(-1, 0)) --pieceX; }
-        if (key == 'd' || key == KEY_RIGHT) { if (canMove(1, 0)) ++pieceX; }
-        if (key == 'w' || key == KEY_UP)    rotate();
-        if (key == 's' || key == KEY_DOWN) { if (canMove(0, 1)) ++pieceY; }
-        if (key == ' ') { // hard drop
-            while (canMove(0, 1)) ++pieceY;
-            lock();
-            clearLines();
-            spawn();
-        }
+		if (ch == 'a' || ch == KEY_LEFT) { if (canMove(-1, 0)) --x; }
+		if (ch == 'd' || ch == KEY_RIGHT) { if (canMove(1, 0)) ++x; }
+		if (ch == 'w' || ch == KEY_UP)    rotate();
+		if (ch == 's' || ch == KEY_DOWN) { if (canMove(0, 1)) ++y; }
+		if (ch == ' ') { // hard drop
+			while (canMove(0, 1)) ++y;
+			lock();
+			clearLines();
+			spawn();
+		}
 
-        auto now = chrono::steady_clock::now();
-        if (chrono::duration_cast<chrono::milliseconds>(now - lastDrop).count() > dropMs) {
-            if (canMove(0, 1))
-                ++pieceY;
-            else {
-                lock();
-                clearLines();
-                spawn();
-            }
-            lastDrop = now;
-            dropMs = max(50, 500 - (level - 1) * 50);
-        }
+		auto now = chrono::steady_clock::now();
+		if (chrono::duration_cast<chrono::milliseconds>(now - lastDrop).count() > dropMs) {
+			if (canMove(0, 1))
+				++y;
+			else {
+				lock();
+				clearLines();
+				spawn();
+			}
+			lastDrop = now;
+			dropMs = max(50, 500 - (level - 1) * 50);
+		}
 
-        draw();
-        this_thread::sleep_for(chrono::milliseconds(16)); // ~60 FPS
-    }
+		renderFrame();
+		this_thread::sleep_for(chrono::milliseconds(16)); // ~60 FPS
+	}
 
-    // Wait for a key on game over before exit
-    if (gameOver) {
-        nodelay(stdscr, FALSE);
-        getch();
-    }
-    endwin();
+	// Wait for a key on game over before exit
+	if (over) {
+		nodelay(stdscr, FALSE);
+		getch();
+	}
+	endwin();
 }
