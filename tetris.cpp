@@ -105,7 +105,7 @@ void Tetris::initializePieces() {
 }
 
 void Tetris::spawnNewPiece() {
-    pieceX = 5;
+    pieceX = BOARD_WIDTH / 2 - 2;
     pieceY = 1;
     currentRotation = 0;
     currentPiece = nextPiece;
