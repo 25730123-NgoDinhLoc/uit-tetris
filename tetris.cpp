@@ -157,6 +157,19 @@ void Tetris::rotate() {
      rotatePiece();
 }
 
+void Tetris::lockPieceToBoard() {
+    for (int row = 0; row < GRID_SIZE; ++row) {
+        for (int col = 0; col < GRID_SIZE; ++col) {
+            if (pieceRotations[currentPiece][currentRotation][row][col] == ' ') continue;
+            int boardX = pieceX + col;
+            int boardY = pieceY + row;
+            if (boardY >= 0 && boardY < BOARD_HEIGHT && boardX >= 0 && boardX < BOARD_WIDTH) {
+                board[boardY][boardX] = pieceRotations[currentPiece][currentRotation][row][col];
+            }
+        }
+    }
+}
+
 bool Tetris::processPlayerInput(int key, chrono::steady_clock::time_point& lastDrop) {
     bool needRender = false;
 	if (gameOver) return needRender;
@@ -205,16 +218,13 @@ void Tetris::movePieceRight() {
 bool Tetris::tryMoveDownOneCell() {
     if (!collides(currentPiece, currentRotation, pieceX, pieceY + 1)) {
         ++pieceY;
-        return true;
+        return true; 
     }
     return false;
 }
 
 void Tetris::lock() {
-    for (int i = 0; i < PIECE_SIZE; ++i)
-        for (int j = 0; j < PIECE_SIZE; ++j)
-            if (getCell(currentPiece, currentRotation, i, j) != ' ')
-                board[pieceY + i][pieceX + j] = getCell(currentPiece, currentRotation, i, j);
+   lockPieceToBoard();            
 }
 void Tetris::lockPieceAndSpawnNext() {
     lock();
