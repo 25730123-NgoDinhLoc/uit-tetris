@@ -17,13 +17,13 @@ namespace {
     constexpr int INDEX_L = 6;
 } // namespace
 
-Tetris::Tetris() : pieceX(5), pieceY(1), currentPiece(0), currentRotation(0), nextPiece(0), score(0), lines(0), level(1), gameOver(false) {
+Tetris::Tetris() : pieceX(5), pieceY(1), currentPiece(0), currentRotation(0), nextPiece(0), score(0), lines(0), level(1), gameOver(false), isPaused(false) {
     srand(static_cast<unsigned int>(time(0)));
     initializePieces();
+    initBlocks();
     initBoard();
     currentPiece = rand() % NUM_PIECES;
     nextPiece = rand() % NUM_PIECES;
-
 }
 
 void Tetris::initBlocks() {
@@ -62,6 +62,13 @@ void Tetris::initBoard() {
 }
 
 void Tetris::initializePieces() {
+    // Clear all rotations first
+    for (int p = 0; p < NUM_PIECES; ++p)
+        for (int r = 0; r < NUM_ROTATIONS; ++r)
+            for (int i = 0; i < GRID_SIZE; ++i)
+                for (int j = 0; j < GRID_SIZE; ++j)
+                    pieceRotations[p][r][i][j] = ' ';
+
     // Khối I - cyan
     pieceRotations[INDEX_I][0][1][0] = pieceRotations[INDEX_I][0][1][1] = pieceRotations[INDEX_I][0][1][2] = pieceRotations[INDEX_I][0][1][3] = 'I';
     pieceRotations[INDEX_I][1][0][1] = pieceRotations[INDEX_I][1][1][1] = pieceRotations[INDEX_I][1][2][1] = pieceRotations[INDEX_I][1][3][1] = 'I';
@@ -70,7 +77,7 @@ void Tetris::initializePieces() {
 
     // Khối O - yellow (giống nhau ở cả 4 trạng thái)
     for (int r = 0; r < NUM_ROTATIONS; ++r) {
-        pieceRotations[INDEX_O][r][1][1] = pieceRotations[INDEX_O][r][1][2] = pieceRotations[INDEX_O][r][2][1] = pieceRotations[INDEX_O][r][2][2] = 'O';
+pieceRotations[INDEX_O][r][1][1] = pieceRotations[INDEX_O][r][1][2] = pieceRotations[INDEX_O][r][2][1] = pieceRotations[INDEX_O][r][2][2] = 'O';
     }
 
     // Khối T - magenta
@@ -100,7 +107,7 @@ void Tetris::initializePieces() {
     // Khối L - white
     pieceRotations[INDEX_L][0][0][2] = pieceRotations[INDEX_L][0][1][0] = pieceRotations[INDEX_L][0][1][1] = pieceRotations[INDEX_L][0][1][2] = 'L';
     pieceRotations[INDEX_L][1][0][1] = pieceRotations[INDEX_L][1][1][1] = pieceRotations[INDEX_L][1][2][1] = pieceRotations[INDEX_L][1][2][2] = 'L';
-    pieceRotations[INDEX_L][2][1][0] = pieceRotations[INDEX_L][2][1][1] = pieceRotations[INDEX_L][2][1][2] = pieceRotations[INDEX_L][2][2][0] = 'L';
+pieceRotations[INDEX_L][2][1][0] = pieceRotations[INDEX_L][2][1][1] = pieceRotations[INDEX_L][2][1][2] = pieceRotations[INDEX_L][2][2][0] = 'L';
     pieceRotations[INDEX_L][3][0][0] = pieceRotations[INDEX_L][3][0][1] = pieceRotations[INDEX_L][3][1][1] = pieceRotations[INDEX_L][3][2][1] = 'L';
 }
 
@@ -121,6 +128,7 @@ void Tetris::spawn() {
 char Tetris::getCell(int piece, int pieceRotation, int row, int col) const {
     // Truy cập trực tiếp từ bảng tra pieceRotations thay vì tính on-the-fly.
     return pieceRotations[piece][pieceRotation % 4][row][col];
+}
 
 bool Tetris::checkCollision(int piece, int rotation, int posX, int posY) const {
     for (int row = 0; row < GRID_SIZE; ++row) {
@@ -184,7 +192,7 @@ bool Tetris::processPlayerInput(int key, chrono::steady_clock::time_point& lastD
         switch (key) {
             case KEY_LEFT:
             case 'a':
-            case 'A':  movePieceLeft();  needRender = true; break;
+case 'A':  movePieceLeft();  needRender = true; break;
             case KEY_RIGHT:
             case 'd':
             case 'D':  movePieceRight(); needRender = true; break;
@@ -199,9 +207,10 @@ bool Tetris::processPlayerInput(int key, chrono::steady_clock::time_point& lastD
                 needRender = true;
                 break;
             case ' ':
-                while (canMove(0, 1)) ++pieceY;
+                int droppedCells = 0;
+                while (canMove(0, 1)) { ++pieceY; ++droppedCells; }
+                score += droppedCells * 2;
                 lockPieceAndSpawnNext();
-				lastDrop = chrono::steady_clock::now();
                 needRender = true;
                 break;
         }
@@ -230,35 +239,58 @@ bool Tetris::tryMoveDownOneCell() {
 void Tetris::lock() {
    lockPieceToBoard();            
 }
+
 void Tetris::lockPieceAndSpawnNext() {
     lock();
-    clearLines();
-    spawn();
-}
-void Tetris::clearLines() {
-    int cleared = 0;
-    for (int row = BOARD_HEIGHT - 2; row > 0; --row) {
-        bool full = true;
-        for (int col = 1; col < BOARD_WIDTH - 1; ++col)
-            if (board[row][col] == ' ') { full = false; break; }
-
-        if (full) {
-            ++cleared;
-            for (int r = row; r > 1; --r)
-                for (int c = 1; c < BOARD_WIDTH - 1; ++c)
-                    board[r][c] = board[r - 1][c];
-            for (int c = 1; c < BOARD_WIDTH - 1; ++c)
-                board[1][c] = ' ';
-            ++row; // re-check this row
-        }
-    }
-    if (cleared) {
-        lines += cleared;
-        // Simple scoring: 40, 100, 300, 1200 per level
-        int pointsTable[] = { 0, 40, 100, 300, 1200 };
-        score += pointsTable[cleared] * level;
+    int linesJustCleared = clearFullLines();
+    if (linesJustCleared > 0) {
+        lines += linesJustCleared;
+        score += calculateScoreForLines(linesJustCleared) * level;
         level = 1 + lines / 10;
     }
+    spawn();
+}
+
+bool Tetris::isRowFull(int row) const {
+    for (int col = 1; col < BOARD_WIDTH - 1; ++col)
+        if (board[row][col] == ' ') return false;
+    return true;
+}
+
+void Tetris::deleteRowAndShiftDown(int deletedRow) {
+    for (int r = deletedRow; r > 1; --r)
+        for (int c = 1; c < BOARD_WIDTH - 1; ++c)
+            board[r][c] = board[r - 1][c];
+    for (int c = 1; c < BOARD_WIDTH - 1; ++c)
+        board[1][c] = ' ';
+}
+
+int Tetris::clearFullLines() {
+    int linesCleared = 0;
+    for (int row = BOARD_HEIGHT - 2; row > 0; --row) {
+        if (isRowFull(row)) {
+            deleteRowAndShiftDown(row);
+            ++linesCleared;
+            ++row;
+        }
+    }
+
+    return linesCleared;
+}
+
+int Tetris::calculateScoreForLines(int numLines) const {
+    switch (numLines) {
+        case 1: return 100;
+        case 2: return 300;
+        case 3: return 500;
+        case 4: return 800;
+        default: return 0;
+    }
+}
+
+int Tetris::calculateGravityDelayMs() const {
+    int delay = 600 - (level - 1) * 50;
+    return (delay < 50) ? 50 : delay;
 }
 
 void Tetris::draw() const {
@@ -272,7 +304,7 @@ void Tetris::draw() const {
     // Draw active piece
     for (int i = 0; i < PIECE_SIZE; ++i)
         for (int j = 0; j < PIECE_SIZE; ++j)
-            if (getCell(currentPiece, currentRotation, i, j) != ' ')
+			if (getCell(currentPiece, currentRotation, i, j) != ' ')
                 mvaddch(pieceY + i, (pieceX + j) * 2, getCell(currentPiece, currentRotation, i, j));
 
     // Sidebar info
@@ -322,34 +354,36 @@ void Tetris::run() {
 	initializeColors();
 
 	auto lastDrop = chrono::steady_clock::now();
-	int dropMs = 500; // start speed
 
-	while (!over) {
+	while (!gameOver) {
 		int ch = getch();
 		if (ch == 'q' || ch == 'Q') break;
 
-		if (ch == 'a' || ch == KEY_LEFT) { if (canMove(-1, 0)) --x; }
-		if (ch == 'd' || ch == KEY_RIGHT) { if (canMove(1, 0)) ++x; }
+		if (ch == 'a' || ch == KEY_LEFT) { if (canMove(-1, 0)) --pieceX; }
+		if (ch == 'd' || ch == KEY_RIGHT) { if (canMove(1, 0)) ++pieceX; }
 		if (ch == 'w' || ch == KEY_UP)    rotate();
-		if (ch == 's' || ch == KEY_DOWN) { if (canMove(0, 1)) ++y; }
+		if (ch == 's' || ch == KEY_DOWN) {
+            if (canMove(0, 1)) { ++pieceY; score += 1; }
+            else { lockPieceAndSpawnNext(); }
+            lastDrop = chrono::steady_clock::now();
+        }
 		if (ch == ' ') { // hard drop
-			while (canMove(0, 1)) ++y;
-			lock();
-			clearLines();
-			spawn();
+			int droppedCells = 0;
+            while (canMove(0, 1)) { ++pieceY; ++droppedCells; }
+            score += droppedCells * 2;
+            lockPieceAndSpawnNext();
+			lastDrop = chrono::steady_clock::now();
 		}
 
 		auto now = chrono::steady_clock::now();
-		if (chrono::duration_cast<chrono::milliseconds>(now - lastDrop).count() > dropMs) {
+		if (chrono::duration_cast<chrono::milliseconds>(now - lastDrop).count() > calculateGravityDelayMs()) {
 			if (canMove(0, 1))
-				++y;
+				++pieceY;
 			else {
-				lock();
-				clearLines();
-				spawn();
+				lockPieceAndSpawnNext();
 			}
 			lastDrop = now;
-			dropMs = max(50, 500 - (level - 1) * 50);
+
 		}
 
 		renderFrame();
@@ -357,9 +391,15 @@ void Tetris::run() {
 	}
 
 	// Wait for a key on game over before exit
-	if (over) {
+	if (gameOver) {
 		nodelay(stdscr, FALSE);
 		getch();
 	}
 	endwin();
+}
+
+void Tetris::initializeColors() {}
+
+void Tetris::renderFrame() {
+	draw();
 }

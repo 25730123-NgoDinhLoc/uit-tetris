@@ -6,7 +6,7 @@
 class Tetris {
 public:
 	Tetris();
-	~Tetris();
+	~Tetris() = default;
 	void run();
 
 private:
@@ -16,16 +16,22 @@ private:
 	static constexpr int NUM_ROTATIONS = 4;  // number of rotations
 	static constexpr int S = 4;    // piece size (4x4)
 	static constexpr int GRID_SIZE = 4;      // grid size (4x4)
+
+	static constexpr int NUM_PIECES = 7;     // number of pieces
+
+	static constexpr int BOARD_WIDTH = W;
+	static constexpr int BOARD_HEIGHT = H;
+	static constexpr int PIECE_SIZE = S;
 	
 
 	char board[H][W];
 	char blocks[P][S][S];
 	char pieceRotations[NUM_PIECES][NUM_ROTATIONS][GRID_SIZE][GRID_SIZE];
 
-	int x, y;       // current piece position (top-left of 4x4 box)
-	int b;          // current piece index
-	int rot;        // current rotation (0..3)
-	int next;       // next piece index
+	int pieceX, pieceY;       // current piece position (top-left of 4x4 box)
+	int currentPiece;         // current piece index
+	int currentRotation;      // current rotation (0..3)
+	int nextPiece;            // next piece index
 
 	int score;
 	int lines;
@@ -52,12 +58,17 @@ private:
 
 	void lock();
 	void clearLines();
+	bool isRowFull(int row) const;
+    void deleteRowAndShiftDown(int row);
+    int clearFullLines();
+    int calculateScoreForLines(int numLines) const;
+    int calculateGravityDelayMs() const;
 	void draw() const;
 	void movePieceLeft();
     void movePieceRight();
     bool tryMoveDownOneCell();
     bool processPlayerInput(int key, std::chrono::steady_clock::time_point& lastDrop);
-    bool updateGravity(chrono::steady_clock::time_point& lastDrop);
+    bool updateGravity(std::chrono::steady_clock::time_point& lastDrop);
     void lockPieceAndSpawnNext();
 	void initializeColors();
 	void drawBorder();
