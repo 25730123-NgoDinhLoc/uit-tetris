@@ -104,7 +104,7 @@ void Tetris::initializePieces() {
     pieceRotations[INDEX_L][3][0][0] = pieceRotations[INDEX_L][3][0][1] = pieceRotations[INDEX_L][3][1][1] = pieceRotations[INDEX_L][3][2][1] = 'L';
 }
 
-void Tetris::spawn() {
+void Tetris::spawnNewPiece() {
     pieceX = 5;
     pieceY = 1;
     currentRotation = 0;
@@ -112,6 +112,10 @@ void Tetris::spawn() {
     nextPiece = rand() % NUM_PIECES;
     if (collides(currentPiece, currentRotation, pieceX, pieceY))
         gameOver = true;
+}
+
+void Tetris::spawn() {
+    spawnNewPiece();
 }
 
 char Tetris::getCell(int piece, int pieceRotation, int row, int col) const {
