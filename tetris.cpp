@@ -12,14 +12,14 @@
 // ---------------------------------------------------------------------------
 namespace {
 
-    // Chỉ số khối trong bảng tra pieceDefinitions, dùng để khởi tạo dễ đọc hơn.
-    constexpr int INDEX_I = 0;
-    constexpr int INDEX_O = 1;
-    constexpr int INDEX_T = 2;
-    constexpr int INDEX_S = 3;
-    constexpr int INDEX_Z = 4;
-    constexpr int INDEX_J = 5;
-    constexpr int INDEX_L = 6;
+// Chỉ số khối trong bảng tra pieceDefinitions, dùng để khởi tạo dễ đọc hơn.
+constexpr int INDEX_I = 0;
+constexpr int INDEX_O = 1;
+constexpr int INDEX_T = 2;
+constexpr int INDEX_S = 3;
+constexpr int INDEX_Z = 4;
+constexpr int INDEX_J = 5;
+constexpr int INDEX_L = 6;
 
 } // namespace
 
@@ -498,36 +498,143 @@ int Tetris::calculateGravityDelayMs() const {
 // Vòng lặp chính: khởi tạo ncurses, vẽ frame ban đầu, rồi lặp đọc phím không chặn
 // và cập nhật trọng lực theo thờigian (~60 FPS).
 void Tetris::run() {
-    initscr();
-    cbreak();
-    noecho();
-    nodelay(stdscr, TRUE);
-    keypad(stdscr, TRUE);
-    curs_set(0);
-    initializeColors();
+    // Dùng steady_clock thay vì system_clock để tránh bị ảnh hưởng khi ngườidùng chỉnh giờ hệ thống.
+    // Đây là bộ đếm monotonic: chỉ tăng, không bao giờ quay ngược.
+    using clock = std::chrono::steady_clock;
 
-    endwin();
+    // Ghi lại thờidiểm lần cuối khối tự rơi xuống 1 ô (gravity).
+    // Mỗi vòng lặp sẽ so sánh now - lastGravityDrop với calculateGravityDelayMs().
+    auto lastGravityDrop = clock::now();
+
+    initscr();                   // Khởi tạo ncurses: chuyển terminal sang chế độ vẽ
+    cbreak();                    // Tắt line buffering: phím được gửi ngay lập tức
+    noecho();                    // Không hiển thị ký tự người dùng gõ lên màn hình
+    nodelay(stdscr, TRUE);       // getch() không chặn (non-blocking): trả về ERR nếu chưa có phím
+    keypad(stdscr, TRUE);        // Cho phép đọc phím mũi tên, F1, v.v. thay vì escape sequences
+    curs_set(0);                 // Ẩn con trỏ nháy để màn hình game gọn gàng
+    initializeColors();          // Thiết lập 9 COLOR_PAIR cho khối, viền, overlay
+
+    renderFrame();               // Vẽ frame đầu tiên trước khi vào vòng lặp
+
+    // Vòng lặp chính chạy liên tục ~60 FPS (mỗi vòng ~16 ms).
+    // Cơ chế: luôn poll phím + cập nhật gravity + vẽ lại, bất kể có phím hay không.
+    while (!status.isGameOver) {
+        int keyPressed = getch();
+
+        // Thoát ngay nếu ngườichơi nhấn Q (không cần chờ game over).
+        if (keyPressed == 'q' || keyPressed == 'Q') {
+            break;
+        }
+
+        processPlayerInput(keyPressed, lastGravityDrop);
+        updateGravity(lastGravityDrop);
+        renderFrame();
+
+        // Ngủ 16 ms để giữ ~60 FPS và không chiếm 100% CPU.
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
+    }
+
+    // Khi game over, chuyển sang chế độ chặn (blocking) để overlay hiển thị
+    // và chờ người chơi nhấn một phím bất kỳ trước khi thoát.
+    if (status.isGameOver) {
+        nodelay(stdscr, FALSE);
+        getch();
+    }
+
+    endwin();                    // Khôi phục terminal về trạng thái ban đầu
 }
 
 // ---------------------------------------------------------------------------
 // Xử lý phím bấm
 // ---------------------------------------------------------------------------
-
-// Đọc phím từ ngườichơi và thực hiện di chuyển / xoay / tạm dừng.
+// Đọc phím từ người chơi và thực hiện di chuyển / xoay / tạm dừng.
 // Tham số lastGravityDrop dùng để reset bộ đếm trọng lực khi ngườichơi chủ động rơi.
 void Tetris::processPlayerInput(int keyPressed, std::chrono::steady_clock::time_point& lastGravityDrop) {
-    (void)keyPressed;
-    (void)lastGravityDrop;
+    if (status.isGameOver) {
+        return;
+    }
+
+    if (keyPressed == 'p' || keyPressed == 'P') {
+        status.isPaused = !status.isPaused;
+        return;
+    }
+
+    if (status.isPaused) {
+        return;
+    }
+
+    switch (keyPressed) {
+        case KEY_LEFT:
+        case 'a':
+        case 'A':
+            movePieceLeft();
+            break;
+
+        case KEY_RIGHT:
+        case 'd':
+        case 'D':
+            movePieceRight();
+            break;
+
+        case KEY_UP:
+        case 'w':
+        case 'W':
+            rotatePiece();
+            break;
+
+        case KEY_DOWN:
+        case 's':
+        case 'S':
+            if (!tryMoveDownOneCell()) {
+                lockPieceAndSpawnNext();
+            }
+            lastGravityDrop = std::chrono::steady_clock::now();
+            break;
+
+        case ' ':
+            status.score += dropToBottom() * 2;
+            lockPieceAndSpawnNext();
+            lastGravityDrop = std::chrono::steady_clock::now();
+            break;
+
+        case 'c':
+        case 'C':
+            holdCurrentPiece();
+            break;
+
+        default:
+            break;
+    }
 }
 
 // ---------------------------------------------------------------------------
 // Trọng lực tự động
 // ---------------------------------------------------------------------------
-
 // Kiểm tra xem đã đến lúc tự rơi chưa, nếu có thì hạ khối xuống 1 ô.
 // Trả về true nếu cần vẽ lại màn hình.
 bool Tetris::updateGravity(std::chrono::steady_clock::time_point& lastGravityDrop) {
-    (void)lastGravityDrop;
+    // Không cập nhật gravity khi game over hoặc đang tạm dừng.
+    if (status.isGameOver || status.isPaused) return false;
+
+    // Lấy thờidiểm hiện tại và tính khoảng thờigian đã trôi qua kể từ lần rơi cuối.
+    // Dùng duration_cast<milliseconds> để so sánh với đơn vị ms của calculateGravityDelayMs().
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastGravityDrop).count();
+
+    // Nếu đã đủ thờigian chờ (theo cấp độ hiện tại), thực hiện rơi 1 ô.
+    if (elapsed >= calculateGravityDelayMs()) {
+        // tryMoveDownOneCell() trả về false nghĩa là khối đã chạm đáy hoặc khối khác.
+        // Khi đó phải khóa khối hiện tại và sinh khối mới.
+        if (!tryMoveDownOneCell()) {
+            lockPieceAndSpawnNext();
+        }
+        // Cập nhật mốc thờigian để chờ đợt rơi tiếp theo.
+        lastGravityDrop = now;
+        // Trả về true để bên ngoài biết cần vẽ lại màn hình.
+        return true;
+    }
+
+    // Chưa đến lúc rơi, không cần vẽ lại.
     return false;
 }
 
@@ -588,8 +695,7 @@ void Tetris::drawLockedBlocks() {
             int screenCol = boardScreenCol + col * CELL_WIDTH;
             if (colorId == 0) {
                 mvaddstr(screenRow, screenCol, " .");
-            }
-            else {
+            } else {
                 attron(COLOR_PAIR(colorId) | A_REVERSE);
                 mvaddstr(screenRow, screenCol, "  ");
                 attroff(COLOR_PAIR(colorId) | A_REVERSE);
@@ -604,7 +710,7 @@ void Tetris::drawLockedBlocks() {
 // Vẽ một khối tại tọa độ bảng (posX, posY).
 // Nếu isGhost = true, vẽ bằng "::" thay vì khối đặc để người chơi thấy điểm rơi.
 void Tetris::drawSinglePiece(int pieceIndex, int rotation, int posX, int posY, bool isGhost) {
-    const RotationGrid& grid = pieceDefinitions[pieceIndex].allRotations[rotation];
+   const RotationGrid& grid = pieceDefinitions[pieceIndex].allRotations[rotation];
     for (int row = 0; row < GRID_SIZE; ++row) {
         for (int col = 0; col < GRID_SIZE; ++col) {
             int colorId = grid.cells[row][col];
@@ -619,8 +725,7 @@ void Tetris::drawSinglePiece(int pieceIndex, int rotation, int posX, int posY, b
                 attron(COLOR_PAIR(colorId));
                 mvaddstr(screenRow, screenCol, "::");
                 attroff(COLOR_PAIR(colorId));
-            }
-            else {
+            } else {
                 attron(COLOR_PAIR(colorId) | A_REVERSE);
                 mvaddstr(screenRow, screenCol, "  ");
                 attroff(COLOR_PAIR(colorId) | A_REVERSE);
