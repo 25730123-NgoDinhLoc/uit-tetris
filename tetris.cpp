@@ -12,14 +12,14 @@
 // ---------------------------------------------------------------------------
 namespace {
 
-// Chỉ số khối trong bảng tra pieceDefinitions, dùng để khởi tạo dễ đọc hơn.
-constexpr int INDEX_I = 0;
-constexpr int INDEX_O = 1;
-constexpr int INDEX_T = 2;
-constexpr int INDEX_S = 3;
-constexpr int INDEX_Z = 4;
-constexpr int INDEX_J = 5;
-constexpr int INDEX_L = 6;
+    // Chỉ số khối trong bảng tra pieceDefinitions, dùng để khởi tạo dễ đọc hơn.
+    constexpr int INDEX_I = 0;
+    constexpr int INDEX_O = 1;
+    constexpr int INDEX_T = 2;
+    constexpr int INDEX_S = 3;
+    constexpr int INDEX_Z = 4;
+    constexpr int INDEX_J = 5;
+    constexpr int INDEX_L = 6;
 
 } // namespace
 
@@ -54,10 +54,10 @@ bool GameBoard::isCellOccupied(int col, int row) const {
 // Khởi tạo bảng tra các trạng thái xoay, bảng chơi, và sinh khối đầu tiên.
 Tetris::Tetris()
     : nextPieceIndex(0),
-      holdPieceIndex(-1),
-      hasHeldThisTurn(false),
-      boardScreenRow(1),
-      boardScreenCol(2) {
+    holdPieceIndex(-1),
+    hasHeldThisTurn(false),
+    boardScreenRow(1),
+    boardScreenCol(2) {
     initializePieces();
     resetBoard();
     std::srand(static_cast<unsigned int>(std::time(nullptr)));
@@ -272,11 +272,11 @@ void Tetris::initializePieces() {
 // Nếu khối mới xuất hiện đã va chạm ngay lập tức, trò chơi kết thúc.
 void Tetris::spawnNewPiece() {
     falling.pieceIndex = nextPieceIndex;
-    nextPieceIndex     = std::rand() % NUM_PIECES;
-    falling.rotation   = 0;
-    falling.posX       = GameBoard::WIDTH / 2 - 2; // Căn giữa hộp bao 4 ô
-    falling.posY       = 0;
-    hasHeldThisTurn    = false;
+    nextPieceIndex = std::rand() % NUM_PIECES;
+    falling.rotation = 0;
+    falling.posX = GameBoard::WIDTH / 2 - 2; // Căn giữa hộp bao 4 ô
+    falling.posY = 0;
+    hasHeldThisTurn = false;
 
     if (checkCollision(falling.pieceIndex, falling.rotation, falling.posX, falling.posY)) {
         status.isGameOver = true;
@@ -372,7 +372,7 @@ int Tetris::clearFullLines() {
 void Tetris::rotatePiece() {
     int nextRotation = (falling.rotation + 1) % NUM_ROTATIONS;
     // Thử các độ dịch chuyển ngang: 0, -1, +1, -2, +2 ô.
-    int horizontalShifts[] = {0, -1, 1, -2, 2};
+    int horizontalShifts[] = { 0, -1, 1, -2, 2 };
     for (int shift : horizontalShifts) {
         if (!checkCollision(falling.pieceIndex, nextRotation, falling.posX + shift, falling.posY)) {
             falling.rotation = nextRotation;
@@ -428,11 +428,11 @@ int Tetris::calculateGhostPositionY() const {
 // Điểm theo hàng đã xóa: 1=100, 2=300, 3=500, 4=800. Sau đó nhân với cấp độ.
 int Tetris::calculateScoreForLines(int numLines) const {
     switch (numLines) {
-        case 1: return 100;
-        case 2: return 300;
-        case 3: return 500;
-        case 4: return 800;
-        default: return 0;
+    case 1: return 100;
+    case 2: return 300;
+    case 3: return 500;
+    case 4: return 800;
+    default: return 0;
     }
 }
 
@@ -450,7 +450,8 @@ void Tetris::holdCurrentPiece() {
     if (holdPieceIndex == -1) {
         holdPieceIndex = falling.pieceIndex;
         spawnNewPiece();
-    } else {
+    }
+    else {
         int temp = falling.pieceIndex;
         falling.pieceIndex = holdPieceIndex;
         holdPieceIndex = temp;
@@ -534,37 +535,232 @@ bool Tetris::updateGravity(std::chrono::steady_clock::time_point& lastGravityDro
 // Màu sắc
 // ---------------------------------------------------------------------------
 
-void Tetris::initializeColors() {}
-
-// ---------------------------------------------------------------------------
-// Vẽ (Rendering)
-// ---------------------------------------------------------------------------
-
-void Tetris::renderFrame() {}
-
-void Tetris::drawBorder() {}
-
-void Tetris::drawLockedBlocks() {}
-
-// Vẽ một khối tại tọa độ bảng (posX, posY).
-// Nếu isGhost = true, vẽ bằng "::" thay vì khối đặc để ngườichơi thấy điểm rơi.
-void Tetris::drawSinglePiece(int pieceIndex, int rotation, int posX, int posY, bool isGhost) {
-    (void)pieceIndex;
-    (void)rotation;
-    (void)posX;
-    (void)posY;
-    (void)isGhost;
+void Tetris::initializeColors() {
+    if (has_colors()) {
+        start_color();
+        use_default_colors();
+        init_pair(1, COLOR_CYAN, COLOR_BLACK); // I
+        init_pair(2, COLOR_YELLOW, COLOR_BLACK); // O
+        init_pair(3, COLOR_MAGENTA, COLOR_BLACK); // T
+        init_pair(4, COLOR_GREEN, COLOR_BLACK); // S
+        init_pair(5, COLOR_RED, COLOR_BLACK); // Z
+        init_pair(6, COLOR_BLUE, COLOR_BLACK); // J
+        init_pair(7, COLOR_WHITE, COLOR_BLACK); // L
+        init_pair(8, COLOR_WHITE, COLOR_BLACK); // Viền / chữ giao diện
+        init_pair(9, COLOR_BLACK, COLOR_WHITE); // Lớp phủ (pause, game over)
+    }
 }
 
-void Tetris::drawNextPiecePreview() {}
+// ---------------------------------------------------------------------------
+// Vẽ viền bảng chơi
+// ---------------------------------------------------------------------------
+void Tetris::drawBorder() {
+    attron(COLOR_PAIR(8));
+    int topRow = boardScreenRow - 1;
+    int bottomRow = boardScreenRow + GameBoard::HEIGHT;
+    int leftCol = boardScreenCol - 1;
+    int rightCol = boardScreenCol + GameBoard::WIDTH * CELL_WIDTH;
 
-void Tetris::drawHoldPiece() {}
+    mvaddch(topRow, leftCol, ACS_ULCORNER);
+    mvaddch(topRow, rightCol, ACS_URCORNER);
+    mvaddch(bottomRow, leftCol, ACS_LLCORNER);
+    mvaddch(bottomRow, rightCol, ACS_LRCORNER);
 
-void Tetris::drawSidebar() {}
+    for (int col = leftCol + 1; col < rightCol; ++col) {
+        mvaddch(topRow, col, ACS_HLINE);
+        mvaddch(bottomRow, col, ACS_HLINE);
+    }
+    for (int row = topRow + 1; row < bottomRow; ++row) {
+        mvaddch(row, leftCol, ACS_VLINE);
+        mvaddch(row, rightCol, ACS_VLINE);
+    }
+    attroff(COLOR_PAIR(8));
+}
 
-void Tetris::drawGameOverOverlay() {}
+// ---------------------------------------------------------------------------
+// Vẽ các khối đã khóa
+// ---------------------------------------------------------------------------
+void Tetris::drawLockedBlocks() {
+    for (int row = 0; row < GameBoard::HEIGHT; ++row) {
+        for (int col = 0; col < GameBoard::WIDTH; ++col) {
+            int colorId = board.cells[row][col];
+            int screenRow = boardScreenRow + row;
+            int screenCol = boardScreenCol + col * CELL_WIDTH;
+            if (colorId == 0) {
+                mvaddstr(screenRow, screenCol, " .");
+            }
+            else {
+                attron(COLOR_PAIR(colorId) | A_REVERSE);
+                mvaddstr(screenRow, screenCol, "  ");
+                attroff(COLOR_PAIR(colorId) | A_REVERSE);
+            }
+        }
+    }
+}
 
-void Tetris::drawPauseOverlay() {}
+// ---------------------------------------------------------------------------
+// Vẽ 1 khối tại vị trí bất kỳ
+// ---------------------------------------------------------------------------
+// Vẽ một khối tại tọa độ bảng (posX, posY).
+// Nếu isGhost = true, vẽ bằng "::" thay vì khối đặc để người chơi thấy điểm rơi.
+void Tetris::drawSinglePiece(int pieceIndex, int rotation, int posX, int posY, bool isGhost) {
+    const RotationGrid& grid = pieceDefinitions[pieceIndex].allRotations[rotation];
+    for (int row = 0; row < GRID_SIZE; ++row) {
+        for (int col = 0; col < GRID_SIZE; ++col) {
+            int colorId = grid.cells[row][col];
+            if (colorId == 0) continue;
+            int boardCol = posX + col;
+            int boardRow = posY + row;
+            if (boardRow < 0 || boardRow >= GameBoard::HEIGHT) continue;
+            if (boardCol < 0 || boardCol >= GameBoard::WIDTH)  continue;
+            int screenRow = boardScreenRow + boardRow;
+            int screenCol = boardScreenCol + boardCol * CELL_WIDTH;
+            if (isGhost) {
+                attron(COLOR_PAIR(colorId));
+                mvaddstr(screenRow, screenCol, "::");
+                attroff(COLOR_PAIR(colorId));
+            }
+            else {
+                attron(COLOR_PAIR(colorId) | A_REVERSE);
+                mvaddstr(screenRow, screenCol, "  ");
+                attroff(COLOR_PAIR(colorId) | A_REVERSE);
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Vẽ khối tiếp theo (NEXT)
+// ---------------------------------------------------------------------------
+void Tetris::drawNextPiecePreview() {
+    int sidebarCol = boardScreenCol + GameBoard::WIDTH * CELL_WIDTH + 3;
+    int sidebarRow = boardScreenRow;
+
+    attron(COLOR_PAIR(8));
+    mvprintw(sidebarRow, sidebarCol, "NEXT");
+    attroff(COLOR_PAIR(8));
+
+    for (int row = 0; row < GRID_SIZE; ++row) {
+        for (int col = 0; col < GRID_SIZE; ++col) {
+            mvaddstr(sidebarRow + 2 + row, sidebarCol + col * CELL_WIDTH, "  ");
+        }
+    }
+
+    const RotationGrid& grid = pieceDefinitions[nextPieceIndex].allRotations[0];
+    for (int row = 0; row < GRID_SIZE; ++row) {
+        for (int col = 0; col < GRID_SIZE; ++col) {
+            int colorId = grid.cells[row][col];
+            if (colorId == 0) continue;
+            attron(COLOR_PAIR(colorId) | A_REVERSE);
+            mvaddstr(sidebarRow + 2 + row, sidebarCol + col * CELL_WIDTH, "  ");
+            attroff(COLOR_PAIR(colorId) | A_REVERSE);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Vẽ khối đang giữ (HOLD)
+// ---------------------------------------------------------------------------
+void Tetris::drawHoldPiece() {
+    int sidebarCol = boardScreenCol + GameBoard::WIDTH * CELL_WIDTH + 3;
+    int sidebarRow = boardScreenRow + 7;
+
+    attron(COLOR_PAIR(8));
+    mvprintw(sidebarRow, sidebarCol, "HOLD");
+    attroff(COLOR_PAIR(8));
+
+    for (int row = 0; row < GRID_SIZE; ++row) {
+        for (int col = 0; col < GRID_SIZE; ++col) {
+            mvaddstr(sidebarRow + 2 + row, sidebarCol + col * CELL_WIDTH, "  ");
+        }
+    }
+
+    if (holdPieceIndex == -1) {
+        return;
+    }
+
+    const RotationGrid& grid = pieceDefinitions[holdPieceIndex].allRotations[0];
+    for (int row = 0; row < GRID_SIZE; ++row) {
+        for (int col = 0; col < GRID_SIZE; ++col) {
+            int colorId = grid.cells[row][col];
+            if (colorId == 0) continue;
+            attron(COLOR_PAIR(colorId) | A_REVERSE);
+            mvaddstr(sidebarRow + 2 + row, sidebarCol + col * CELL_WIDTH, "  ");
+            attroff(COLOR_PAIR(colorId) | A_REVERSE);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Vẽ thanh bên (sidebar)
+// ---------------------------------------------------------------------------
+void Tetris::drawSidebar() {
+    int sidebarCol = boardScreenCol + GameBoard::WIDTH * CELL_WIDTH + 3;
+    int sidebarRow = boardScreenRow + 15;
+
+    attron(COLOR_PAIR(8));
+    mvprintw(sidebarRow, sidebarCol, "SCORE: %-6d", status.score);
+    mvprintw(sidebarRow + 2, sidebarCol, "LEVEL: %-6d", status.level);
+    mvprintw(sidebarRow + 4, sidebarCol, "LINES: %-6d", status.totalLinesCleared);
+
+    mvprintw(sidebarRow + 7, sidebarCol, "CONTROLS");
+    mvprintw(sidebarRow + 8, sidebarCol, "  A/D      move");
+    mvprintw(sidebarRow + 9, sidebarCol, "  W        rotate");
+    mvprintw(sidebarRow + 10, sidebarCol, "  S        soft drop");
+    mvprintw(sidebarRow + 11, sidebarCol, "  Space    hard drop");
+    mvprintw(sidebarRow + 12, sidebarCol, "  C        hold");
+    mvprintw(sidebarRow + 13, sidebarCol, "  P        pause");
+    mvprintw(sidebarRow + 14, sidebarCol, "  Q        quit");
+    attroff(COLOR_PAIR(8));
+}
+
+// ---------------------------------------------------------------------------
+// Vẽ lớp phủ Game Over / Pause
+// ---------------------------------------------------------------------------
+void Tetris::drawGameOverOverlay() {
+    int centerCol = boardScreenCol + (GameBoard::WIDTH * CELL_WIDTH) / 2 - 5;
+    int centerRow = boardScreenRow + GameBoard::HEIGHT / 2;
+    attron(COLOR_PAIR(9) | A_BOLD);
+    mvprintw(centerRow, centerCol - 2, "  GAME  OVER  ");
+    mvprintw(centerRow + 1, centerCol - 2, "  press  Q    ");
+    attroff(COLOR_PAIR(9) | A_BOLD);
+}
+
+void Tetris::drawPauseOverlay() {
+    int centerCol = boardScreenCol + (GameBoard::WIDTH * CELL_WIDTH) / 2 - 4;
+    int centerRow = boardScreenRow + GameBoard::HEIGHT / 2;
+    attron(COLOR_PAIR(9) | A_BOLD);
+    mvprintw(centerRow, centerCol, "  PAUSED  ");
+    attroff(COLOR_PAIR(9) | A_BOLD);
+}
+
+// ---------------------------------------------------------------------------
+// Vẽ toàn bộ khung hình
+// ---------------------------------------------------------------------------
+
+void Tetris::renderFrame() {
+    erase();
+
+    int titleCol = boardScreenCol;
+    attron(COLOR_PAIR(8) | A_BOLD);
+    mvprintw(0, titleCol, "TETRIS");
+    attroff(COLOR_PAIR(8) | A_BOLD);
+
+    drawBorder();
+    drawLockedBlocks();
+    if (!status.isGameOver) {
+        drawSinglePiece(falling.pieceIndex, falling.rotation, falling.posX, calculateGhostPositionY(), true);
+        drawSinglePiece(falling.pieceIndex, falling.rotation, falling.posX, falling.posY, false);
+    }
+    drawNextPiecePreview();
+    drawHoldPiece();
+    drawSidebar();
+
+    if (status.isGameOver) drawGameOverOverlay();
+    else if (status.isPaused) drawPauseOverlay();
+
+    refresh();
+}
 
 // ---------------------------------------------------------------------------
 // Rơi thẳng xuống đáy
